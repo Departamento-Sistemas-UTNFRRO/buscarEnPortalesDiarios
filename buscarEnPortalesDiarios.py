@@ -21,10 +21,10 @@ import bs4
 import pandas as pd
 import os
 import urllib.parse
+from datetime import datetime
+import locale
 
-
-def getHtml(url):
-    req = urllib.request.Request(url)
+def getHtml(req):
     try:
         resp = urllib.request.urlopen(req)
     except Exception as ex:
@@ -36,42 +36,68 @@ def getHtml(url):
         return soup
 
 
-def getFechaNacion(url, soup):
+def getFechaNacion(soup):
     if (soup is not None):
         for tag in soup.find_all("meta"):
             if tag.get("itemprop", None) == "datePublished":
                 return tag.get("content", None)
+        contenedor = soup.find(class_='fecha')
+        if(contenedor is not None):
+            fechaCompleta = contenedor.getText()
+            fechaCompleta = fechaCompleta.replace('\xa0•', '')
+            fechaCompleta = fechaCompleta.replace('de', '')
+            fechaCompleta = fechaCompleta.replace('  ', ' ')
+            fechaCompleta = fechaCompleta.replace('  ', ' ')
+            locale.setlocale(locale.LC_TIME, 'es_AR')
+            fechaCompleta = datetime.strptime(fechaCompleta, '%d %B %Y %H:%M')
+            return fechaCompleta.strftime('%d/%m/%Y %H:%M:%S')
     return "FECHA NO ENCONTRADA"
 
 
-def getTemaNacion(url, soup):
+def getTemaNacion(soup):
     if (soup is not None):
         contenedor = soup.find(class_='path floatFix breadcrumb')
         if(contenedor is None):
             contenedor = soup.find(class_='path patrocinado floatFix breadcrumb')
-        elementosContenedor = contenedor.find_all("span")
-        tag = elementosContenedor[1]
-        if tag.get("itemprop", None) == "name":
-            return tag.getText()
+        if(contenedor is None):
+            contenedor = soup.find(class_='temas')
+            if (contenedor is not None):
+                elementosContenedor = contenedor.find_all("a")
+                if(elementosContenedor is not None):
+                    return elementosContenedor[0].getText()
+        if (contenedor is not None):
+            elementosContenedor = contenedor.find_all("span")
+            if(elementosContenedor is not None):
+                tag = elementosContenedor[1]
+                if tag.get("itemprop", None) == "name":
+                    return tag.getText()
+        
     return "TEMA NO ENCONTRADO"
 
 
-def getVolantaNacion(url, soup):
+def getVolantaNacion(soup):
     if (soup is not None):
         contenedor = soup.find(class_='path floatFix breadcrumb')
         if(contenedor is None):
             contenedor = soup.find(class_='path patrocinado floatFix breadcrumb')
         if(contenedor is None):
             contenedor = soup.find(class_='path tema-espacio-hsbc floatFix breadcrumb')
-        elementosContenedor = contenedor.find_all("span")
-        if(len(elementosContenedor) > 2):
-            tag = elementosContenedor[2]
-            if tag.get("itemprop", None) == "name":
-                return tag.getText()
+        if(contenedor is None):
+            contenedor = soup.find(class_='temas')
+            if (contenedor is not None):
+                elementosContenedor = contenedor.find_all("a")
+                if(elementosContenedor is not None):
+                    return elementosContenedor[1].getText()
+        if(contenedor is not None):
+            elementosContenedor = contenedor.find_all("span")
+            if(elementosContenedor is not None and len(elementosContenedor) > 2):
+                tag = elementosContenedor[2]
+                if tag.get("itemprop", None) == "name":
+                    return tag.getText()
     return "VOLANTA NO ENCONTRADA"
 
 
-def getTituloDiario(url, soup):
+def getTituloDiario(soup):
     if (soup is not None):
         if (soup.h1 is not None):
             return(soup.h1.getText())
@@ -81,7 +107,7 @@ def getTituloDiario(url, soup):
         return "SOUP No Encontrado 2"
 
 
-def getBajadaNacion(url, soup):
+def getBajadaNacion(soup):
     if (soup is not None):
         texto = "BAJADA NO ENCONTRADA"
         if (soup is not None):
@@ -89,15 +115,16 @@ def getBajadaNacion(url, soup):
                 # Clarín
                 bajada = soup.find(class_="bajada")
                 # porque class es una palabra reservada
-                texto = ""
-                texto = bajada.getText()
+                if(bajada is not None):
+                    texto = ""
+                    texto = bajada.getText()
             except Exception as ex:
                 print("ERROR" + str(ex))
                 print(texto)
     return texto
 
 
-def getTextoDiarioLaNacion(url, soup):
+def getTextoDiarioLaNacion(soup):
     texto = "TEXTO DIARIO NO ENCONTRADO"
     if (soup is not None):
         # La Nación
@@ -113,7 +140,7 @@ def getTextoDiarioLaNacion(url, soup):
     return texto
 
 
-def getTextoDiarioClarin(url, soup):
+def getTextoDiarioClarin(soup):
     texto = "TEXTO DIARIO NO ENCONTRADO"
     if (soup is not None):
         try:
@@ -130,14 +157,14 @@ def getTextoDiarioClarin(url, soup):
     return texto
 
 
-def getFechaClarin(url, soup):
+def getFechaClarin(soup):
     for tag in soup.find_all("meta"):
         if tag.get("itemprop", None) == "datePublished":
             return tag.get("content", None)
     return "FECHA NO ENCONTRADA"
 
 
-def getTemaClarin(url, soup):
+def getTemaClarin(soup):
     texto = "TEMA  NO ENCONTRADO"
     if (soup is not None):
         try:
@@ -151,7 +178,7 @@ def getTemaClarin(url, soup):
     return texto
 
 
-def getVolantaClarin(url, soup):
+def getVolantaClarin(soup):
     texto = "VOLANTA NO ENCONTRADA"
     if (soup is not None):
         try:
@@ -165,7 +192,7 @@ def getVolantaClarin(url, soup):
     return texto
 
 
-def getBajadaDiarioClarin(url, soup):
+def getBajadaDiarioClarin(soup):
     texto = "BAJADA NO ENCONTRADA"
     if (soup is not None):
         try:
@@ -182,54 +209,52 @@ def getBajadaDiarioClarin(url, soup):
 
 
 def loadCsvIntoDataSet(nombreArchivoEntrada):
-    csv = pd.read_csv(nombreArchivoEntrada, header=0, sep=';', quotechar='\'', encoding="utf-8")
+    csv = pd.read_csv(nombreArchivoEntrada, header=0, sep=',', quotechar='\"', encoding="utf-8")
     return csv.values
 
 
-def alargar_url(url):
-    req = urllib.request.Request(url)
+def alargar_url(req):
     try:
-        urllib.request.urlopen(req)
-    except Exception:
-        return None
-    else:
-        resolvedURL = urllib.request.urlopen(url)
+        resolvedURL = urllib.request.urlopen(req)
         return resolvedURL.url
-
+    except Exception as ex:
+        print("ERROR" + str(ex))
+    
+    return None
 
 def addColumnaTitulo(nombreArchivoEntrada):
     posts = loadCsvIntoDataSet(nombreArchivoEntrada).tolist()
-    for i in range(0, len(posts) - 1):
+#    for i in range(0, len(posts) - 1):
+    for i in range(22, 27):
         try:
             print(i)
             if (not(pd.isnull(posts[i][3]))):
-                urlOriginal = alargar_url(posts[i][3])
-                parsed_uri = urllib.parse.urlparse(urlOriginal)
-                domain = '{uri.netloc}'.format(uri=parsed_uri)
-                posts[i][4] = domain
+                req = urllib.request.Request(posts[i][3])
+                urlOriginal = alargar_url(req)
                 if(not(pd.isnull(urlOriginal)) and not(urlOriginal is None)):
+                    parsed_uri = urllib.parse.urlparse(urlOriginal)
+                    domain = '{uri.netloc}'.format(uri=parsed_uri)
+                    posts[i][4] = domain
+                    posts[i].append(urlOriginal)
                     if (('lanacion.com' in urlOriginal) and not('blogs.lanacion' in urlOriginal)):
-                        posts[i].append(urlOriginal)
-                        soup = getHtml(urlOriginal)
-                        posts[i].append(getFechaNacion(urlOriginal, soup))
+                        soup = getHtml(req)
+                        posts[i].append(getFechaNacion(soup))
                         # tema o seccion Ej: política, deportes
-                        posts[i].append(getTemaNacion(urlOriginal, soup))
-                        posts[i].append(getVolantaNacion(urlOriginal, soup))
-                        posts[i].append(getTituloDiario(urlOriginal, soup))
-                        posts[i].append(getBajadaNacion(urlOriginal, soup))
-                        posts[i].append(getTextoDiarioLaNacion(urlOriginal, soup))
+                        posts[i].append(getTemaNacion(soup))
+                        posts[i].append(getVolantaNacion(soup))
+                        posts[i].append(getTituloDiario(soup))
+                        posts[i].append(getBajadaNacion(soup))
+                        posts[i].append(getTextoDiarioLaNacion(soup))
                     elif('clarin.com' in urlOriginal):
-                        posts[i].append(urlOriginal)
-                        soup = getHtml(urlOriginal)
+                        soup = getHtml(req)
 
-                        posts[i].append(getFechaClarin(urlOriginal, soup))
-                        posts[i].append(getTemaClarin(urlOriginal, soup))
-                        posts[i].append(getVolantaClarin(urlOriginal, soup))
-                        posts[i].append(getTituloDiario(urlOriginal, soup))
-                        posts[i].append(getBajadaDiarioClarin(urlOriginal, soup))
-                        posts[i].append(getTextoDiarioClarin(urlOriginal, soup))
+                        posts[i].append(getFechaClarin(soup))
+                        posts[i].append(getTemaClarin(soup))
+                        posts[i].append(getVolantaClarin(soup))
+                        posts[i].append(getTituloDiario(soup))
+                        posts[i].append(getBajadaDiarioClarin(soup))
+                        posts[i].append(getTextoDiarioClarin(soup))
                     else:
-                        posts[i].append("OTRO MEDIO")
                         posts[i].append("OTRO MEDIO")
                         posts[i].append("OTRO MEDIO")
                         posts[i].append("OTRO MEDIO")
@@ -263,7 +288,7 @@ def addColumnaTitulo(nombreArchivoEntrada):
 
 
 def saveInCsv(postsFinal, nombreArchivoSalida):
-    columns = ['tipo_post', 'post_id', 'post_link', 'link', 'link_domain', 'UrlCompleta', 'fecha_hora_diario', 'tema', 'volanta', 'titulo_diario', 'bajada', 'texto_diario']
+    columns = ['tipo_post', 'post_id', 'post_link', 'link', 'link_domain', 'post_message', 'UrlCompleta', 'fecha_hora_diario', 'tema', 'volanta', 'titulo_diario', 'bajada', 'texto_diario']
     print(postsFinal)
     df = pd.DataFrame(data=postsFinal, columns=columns)
     df.to_csv(nombreArchivoSalida, index=False, columns=columns, sep=';', quotechar='"')
