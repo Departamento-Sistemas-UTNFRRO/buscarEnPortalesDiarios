@@ -36,38 +36,38 @@ def getHtml(url):
         return soup
 
 
-def getFechaNacion(url):
-    soup = getHtml(url)
-    for tag in soup.find_all("meta"):
-        if tag.get("itemprop", None) == "datePublished":
-            return tag.get("content", None)
+def getFechaNacion(url, soup):
+    if (soup is not None):
+        for tag in soup.find_all("meta"):
+            if tag.get("itemprop", None) == "datePublished":
+                return tag.get("content", None)
     return "FECHA NO ENCONTRADA"
 
 
-def getTemaNacion(url):
-    soup = getHtml(url)
-    contenedor = soup.find(class_='path floatFix breadcrumb')
-    if(contenedor is None):
-        contenedor = soup.find(class_='path patrocinado floatFix breadcrumb')
-    elementosContenedor = contenedor.find_all("span")
-    tag = elementosContenedor[1]
-    if tag.get("itemprop", None) == "name":
-        return tag.getText()
+def getTemaNacion(url, soup):
+    if (soup is not None):
+        contenedor = soup.find(class_='path floatFix breadcrumb')
+        if(contenedor is None):
+            contenedor = soup.find(class_='path patrocinado floatFix breadcrumb')
+        elementosContenedor = contenedor.find_all("span")
+        tag = elementosContenedor[1]
+        if tag.get("itemprop", None) == "name":
+            return tag.getText()
     return "TEMA NO ENCONTRADO"
 
 
-def getVolantaNacion(url):
-    soup = getHtml(url)
-    contenedor = soup.find(class_='path floatFix breadcrumb')
-    if(contenedor is None):
-        contenedor = soup.find(class_='path patrocinado floatFix breadcrumb')
-    if(contenedor is None):
-        contenedor = soup.find(class_='path tema-espacio-hsbc floatFix breadcrumb')
-    elementosContenedor = contenedor.find_all("span")
-    if(len(elementosContenedor) > 2):
-        tag = elementosContenedor[2]
-        if tag.get("itemprop", None) == "name":
-            return tag.getText()
+def getVolantaNacion(url, soup):
+    if (soup is not None):
+        contenedor = soup.find(class_='path floatFix breadcrumb')
+        if(contenedor is None):
+            contenedor = soup.find(class_='path patrocinado floatFix breadcrumb')
+        if(contenedor is None):
+            contenedor = soup.find(class_='path tema-espacio-hsbc floatFix breadcrumb')
+        elementosContenedor = contenedor.find_all("span")
+        if(len(elementosContenedor) > 2):
+            tag = elementosContenedor[2]
+            if tag.get("itemprop", None) == "name":
+                return tag.getText()
     return "VOLANTA NO ENCONTRADA"
 
 
@@ -81,24 +81,23 @@ def getTituloDiario(url, soup):
         return "SOUP No Encontrado 2"
 
 
-def getBajadaNacion(url):
-    soup = getHtml(url)
-    texto = "BAJADA NO ENCONTRADA"
+def getBajadaNacion(url, soup):
     if (soup is not None):
-        try:
-            # Clarín
-            bajada = soup.find(class_="bajada")
-            # porque class es una palabra reservada
-            texto = ""
-            texto = bajada.getText()
-        except Exception as ex:
-            print("ERROR" + str(ex))
-            print(texto)
+        texto = "BAJADA NO ENCONTRADA"
+        if (soup is not None):
+            try:
+                # Clarín
+                bajada = soup.find(class_="bajada")
+                # porque class es una palabra reservada
+                texto = ""
+                texto = bajada.getText()
+            except Exception as ex:
+                print("ERROR" + str(ex))
+                print(texto)
     return texto
 
 
-def getTextoDiarioLaNacion(url):
-    soup = getHtml(url)
+def getTextoDiarioLaNacion(url, soup):
     texto = "TEXTO DIARIO NO ENCONTRADO"
     if (soup is not None):
         # La Nación
@@ -212,13 +211,13 @@ def addColumnaTitulo(nombreArchivoEntrada):
                     if (('lanacion.com' in urlOriginal) and not('blogs.lanacion' in urlOriginal)):
                         posts[i].append(urlOriginal)
                         soup = getHtml(urlOriginal)
-                        posts[i].append(getFechaNacion(urlOriginal))
+                        posts[i].append(getFechaNacion(urlOriginal, soup))
                         # tema o seccion Ej: política, deportes
-                        posts[i].append(getTemaNacion(urlOriginal))
-                        posts[i].append(getVolantaNacion(urlOriginal))
+                        posts[i].append(getTemaNacion(urlOriginal, soup))
+                        posts[i].append(getVolantaNacion(urlOriginal, soup))
                         posts[i].append(getTituloDiario(urlOriginal, soup))
-                        posts[i].append(getBajadaNacion(urlOriginal))
-                        posts[i].append(getTextoDiarioLaNacion(urlOriginal))
+                        posts[i].append(getBajadaNacion(urlOriginal, soup))
+                        posts[i].append(getTextoDiarioLaNacion(urlOriginal, soup))
                     elif('clarin.com' in urlOriginal):
                         posts[i].append(urlOriginal)
                         soup = getHtml(urlOriginal)
@@ -255,7 +254,7 @@ def addColumnaTitulo(nombreArchivoEntrada):
                 posts[i].append("LINK NULL")
         except Exception as ex:
             columnas = len(posts[i]) + 1
-            for j in range(columnas, 13):
+            for _ in range(columnas, 13):
                 posts[i].append("TIME OUT")
             print("TIME OUT")
             print(ex)
@@ -270,7 +269,7 @@ def saveInCsv(postsFinal, nombreArchivoSalida):
     df.to_csv(nombreArchivoSalida, index=False, columns=columns, sep=';', quotechar='"')
 
 
-nombreArchivoEntrada = os.path.join(os.path.dirname(__file__), 'data', 'nacion_buscar_links.csv')
+nombreArchivoEntrada = os.path.join(os.path.dirname(__file__), 'data', 'buscar_links_faltantes.csv')
 nombreArchivoSalida = os.path.join(os.path.dirname(__file__), 'data', 'post_output.csv')
 postsConTitulo = addColumnaTitulo(nombreArchivoEntrada)
 saveInCsv(postsConTitulo, nombreArchivoSalida)
