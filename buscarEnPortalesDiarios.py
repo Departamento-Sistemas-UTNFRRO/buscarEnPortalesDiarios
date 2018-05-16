@@ -32,7 +32,8 @@ linkAOmitir = ['https://www.facebook.com/lanacion/photos',
                'http://www.youtube.com',
                'http://youtu.be/',
                'https://www.facebook.com/clarincom/videos',
-               'https://www.facebook.com/clarincom/photos'
+               'https://www.facebook.com/clarincom/photos',
+               'blogs.lanacion'
                ]
 
 linkMovidos = {'http://canchallena.lanacion': 'http://www.lanacion',
@@ -257,7 +258,6 @@ def alargar_url(req):
         return resolvedURL.url
     except Exception as ex:
         print("ERROR" + str(ex))
-    
     return None
 
 
@@ -269,6 +269,12 @@ def esLinkAOmitir(link_url):
     return False
 
 
+def getLinkDomain(link_url):
+    '''Devuelve el dominio del link'''
+    parsed_uri = urllib.parse.urlparse(link_url)
+    return '{uri.netloc}'.format(uri=parsed_uri)
+
+
 def addColumnaTitulo(nombreArchivoEntrada):
     posts = loadCsvIntoDataSet(nombreArchivoEntrada).tolist()
     for i in range(0, len(posts) - 1):
@@ -277,10 +283,9 @@ def addColumnaTitulo(nombreArchivoEntrada):
             print(i)
             link_url = posts[i][3]
             if (not(pd.isnull(link_url))):
-
                 if(esLinkAOmitir(link_url)):
                     continue
-                
+
                 for old, new in linkMovidos:
                     if(old in link_url):
                         link_url = link_url.replace(old, new)
@@ -288,14 +293,12 @@ def addColumnaTitulo(nombreArchivoEntrada):
                 req = urllib.request.Request(link_url)
                 urlOriginal = alargar_url(req)
                 if(not(pd.isnull(urlOriginal)) and not(urlOriginal is None)):
-                    parsed_uri = urllib.parse.urlparse(urlOriginal)
-                    domain = '{uri.netloc}'.format(uri=parsed_uri)
-                    posts[i][4] = domain
+                    posts[i][4] = getLinkDomain(urlOriginal)
                     posts[i].append(urlOriginal)
-                    if (('lanacion.com' in urlOriginal) and not('blogs.lanacion' in urlOriginal)):
+
+                    if ('lanacion.com' in urlOriginal):
                         soup = getHtml(req)
                         posts[i].append(getFechaNacion(soup))
-                        # tema o seccion Ej: política, deportes
                         posts[i].append(getTemaNacion(soup))
                         posts[i].append(getVolantaNacion(soup))
                         posts[i].append(getTituloDiario(soup))
@@ -346,7 +349,7 @@ def saveInCsv(postsFinal, nombreArchivoSalida):
     columns = ['tipo_post', 'post_id', 'post_link', 'link', 'link_domain', 'post_message', 'UrlCompleta', 'fecha_hora_diario', 'tema', 'volanta', 'titulo_diario', 'bajada', 'texto_diario']
     print(postsFinal)
     df = pd.DataFrame(data=postsFinal, columns=columns)
-    df.to_csv(nombreArchivoSalida, index=False, columns=columns, sep=';',quoting=csv.QUOTE_ALL, quotechar='"')
+    df.to_csv(nombreArchivoSalida, index=False, columns=columns, sep=';', quoting=csv.QUOTE_ALL, quotechar='"')
 
 
 nombreArchivoEntrada = os.path.join(os.path.dirname(__file__), 'data', 'buscar_info_en_portales_1129.csv')
