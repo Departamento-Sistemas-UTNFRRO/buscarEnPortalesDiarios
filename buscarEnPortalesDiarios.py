@@ -29,11 +29,12 @@ import csv
 linkAOmitir = ['https://www.facebook.com/lanacion/photos',
                'https://www.facebook.com/lanacion/videos',
                'https://www.facebook.com/lndeportes/photos',
-               'http://www.youtube.com',
-               'http://youtu.be/',
                'https://www.facebook.com/clarincom/videos',
                'https://www.facebook.com/clarincom/photos',
-               'blogs.lanacion'
+               'http://www.youtube.com',
+               'http://youtu.be/',
+               'blogs.lanacion',
+               '\\N'
                ]
 
 linkMovidos = {'http://canchallena.lanacion': 'http://www.lanacion',
@@ -45,39 +46,43 @@ linkMovidos = {'http://canchallena.lanacion': 'http://www.lanacion',
 def getHtml(req):
     try:
         resp = urllib.request.urlopen(req)
-    except Exception as ex:
-        print("ERROR" + str(ex))
-        return None
-    else:
         html = resp.read()
         soup = bs4.BeautifulSoup(html, 'html.parser')
         return soup
+    except Exception as ex:
+        print("ERROR" + str(ex))
+        return None
 
 
 def getFechaNacion(soup):
+    fechaNacion = "FECHA NO ENCONTRADA"
+    if (soup is None):
+        return fechaNacion
+
     try:
-        if (soup is not None):
-            for tag in soup.find_all("meta"):
-                if tag.get("itemprop", None) == "datePublished":
+        for tag in soup.find_all("meta"):
+            if tag.get("itemprop", None) == "datePublished":
                     return tag.get("content", None)
-            contenedor = soup.find(class_='fecha')
-            if(contenedor is not None):
-                fechaCompleta = contenedor.getText()
-                fechaCompleta = fechaCompleta.replace('\xa0', '')
-                fechaCompleta = fechaCompleta.replace('de', '')
-                fechaCompleta = fechaCompleta.replace('•', '')
-                fechaCompleta = fechaCompleta.replace('  ', ' ')
-                fechaCompleta = fechaCompleta.replace('  ', ' ')
-                fechaCompleta = fechaCompleta.strip()
-                locale.setlocale(locale.LC_TIME, 'es_AR')
-                if('•' in contenedor.getText()):
-                    fechaCompleta = datetime.strptime(fechaCompleta, '%d %B %Y %H:%M')
-                else:
-                    fechaCompleta = datetime.strptime(fechaCompleta, '%d %B %Y')
-                return fechaCompleta.strftime('%d/%m/%Y %H:%M:%S')
+        contenedor = soup.find(class_='fecha')
+        if(contenedor is not None):
+            fechaCompleta = contenedor.getText()
+            fechaCompleta = fechaCompleta.replace('\xa0', '')
+            fechaCompleta = fechaCompleta.replace('de', '')
+            fechaCompleta = fechaCompleta.replace('•', '')
+            fechaCompleta = fechaCompleta.replace('  ', ' ')
+            fechaCompleta = fechaCompleta.replace('  ', ' ')
+            fechaCompleta = fechaCompleta.strip()
+            locale.setlocale(locale.LC_TIME, 'es_AR')
+            if('•' in contenedor.getText()):
+                fechaCompleta = datetime.strptime(
+                    fechaCompleta, '%d %B %Y %H:%M')
+            else:
+                fechaCompleta = datetime.strptime(
+                    fechaCompleta, '%d %B %Y')
+            fechaNacion = fechaCompleta.strftime('%d/%m/%Y %H:%M:%S')
     except Exception as ex:
         print("ERROR" + str(ex))
-    return "FECHA NO ENCONTRADA"
+    return fechaNacion
 
 
 def getTemaNacion(soup):
@@ -131,69 +136,72 @@ def getVolantaNacion(soup):
 
 
 def getTituloDiario(soup):
+    result = "TITULO No Encontrado"
+    if (soup is None):
+        return result
+
     try:
-        if (soup is not None):
-            if (soup.h1 is not None):
-                return(soup.h1.getText())
-            else:
-                return "TITULO No Encontrado"
+        if (soup.h1 is not None):
+            result = soup.h1.getText()
     except Exception as ex:
         print("ERROR" + str(ex))
-
-    return "SOUP No Encontrado 2"
+    return result
 
 
 def getBajadaNacion(soup):
     texto = "BAJADA NO ENCONTRADA"
-    if (soup is not None):
-        try:
-            # Clarín
-            bajada = soup.find(class_="bajada")
-            # porque class es una palabra reservada
-            if(bajada is not None):
-                texto = bajada.getText()
-        except Exception as ex:
-            print("ERROR" + str(ex))
-            print(texto)
+    if (soup is None):
+        return texto
+    try:
+        bajada = soup.find(class_="bajada")
+        # porque class es una palabra reservada
+        if(bajada is not None):
+            texto = bajada.getText()
+    except Exception as ex:
+        print("ERROR" + str(ex))
+        print(texto)
     return texto
 
 
 def getTextoDiarioLaNacion(soup):
     texto = "TEXTO DIARIO NO ENCONTRADO"
     if (soup is not None):
-        # La Nación
-        try:
-            cuerpo = soup.find(id='cuerpo')
-            if(cuerpo is not None):
-                parrafos = cuerpo.find_all('p')
-                texto = ""
-                for p in parrafos:
-                    texto = texto + p.getText()
-        except Exception as ex:
-            print("ERROR" + str(ex))
-            print(texto)
+        return texto
+
+    try:
+        cuerpo = soup.find(id='cuerpo')
+        if(cuerpo is not None):
+            parrafos = cuerpo.find_all('p')
+            texto = ""
+            for p in parrafos:
+                texto = texto + p.getText()
+    except Exception as ex:
+        print("ERROR" + str(ex))
+        print(texto)
     return texto
 
 
 def getTextoDiarioClarin(soup):
     texto = "TEXTO DIARIO NO ENCONTRADO"
     if (soup is not None):
-        try:
-            # Clarín
-            cuerpo = soup.find(class_='body-nota')
-            # porque class es una palabra reservada
-            if(cuerpo is not None):
-                parrafos = cuerpo.find_all('p')
-                texto = ""
-                for p in parrafos:
-                    texto = texto + p.getText()
-        except Exception as ex:
-            print("ERROR" + str(ex))
-            print(texto)
+        return texto
+
+    try:
+        cuerpo = soup.find(class_='body-nota')
+        # porque class es una palabra reservada
+        if(cuerpo is not None):
+            parrafos = cuerpo.find_all('p')
+            texto = ""
+            for p in parrafos:
+                texto = texto + p.getText()
+    except Exception as ex:
+        print("ERROR" + str(ex))
+        print(texto)
     return texto
 
 
 def getFechaClarin(soup):
+
     for tag in soup.find_all("meta"):
         if tag.get("itemprop", None) == "datePublished":
             return tag.get("content", None)
@@ -202,54 +210,53 @@ def getFechaClarin(soup):
 
 def getTemaClarin(soup):
     texto = "TEMA  NO ENCONTRADO"
-    if (soup is not None):
-        try:
-            # Clarín
-            tema = soup.find(class_='header-section-name')
-            texto = ""
-            if(tema is not None):
-                texto = tema.getText()
-        except Exception as ex:
-            print("ERROR" + str(ex))
-            print(texto)
+    if (soup is None):
+        return texto
+
+    try:
+        # Clarín
+        tema = soup.find(class_='header-section-name')
+        texto = ""
+        if(tema is not None):
+            texto = tema.getText()
+    except Exception as ex:
+        print("ERROR" + str(ex))
+        print(texto)
     return texto
 
 
 def getVolantaClarin(soup):
     texto = "VOLANTA NO ENCONTRADA"
-    if (soup is not None):
-        try:
-            # Clarín
-            volanta = soup.find(class_='volanta')
-            texto = ""
-            if (volanta is not None):
-                texto = volanta.getText()
-        except Exception as ex:
-            print("ERROR" + str(ex))
-            print(texto)
+    if (soup is None):
+        return texto
+
+    try:
+        volanta = soup.find(class_='volanta')
+        texto = ""
+        if (volanta is not None):
+            texto = volanta.getText()
+    except Exception as ex:
+        print("ERROR" + str(ex))
+        print(texto)
     return texto
 
 
 def getBajadaDiarioClarin(soup):
     texto = "BAJADA NO ENCONTRADA"
-    if (soup is not None):
-        try:
-            # Clarín
-            bajada = soup.find(class_='bajada')
-            if(bajada is not None):
-                parrafos = bajada.find_all('p')
-                texto = ""
-                for p in parrafos:
-                    texto = texto + p.getText()
-        except Exception as ex:
-            print("ERROR" + str(ex))
-            print(texto)
+    if (soup is None):
+        return texto
+
+    try:
+        bajada = soup.find(class_='bajada')
+        if(bajada is not None):
+            parrafos = bajada.find_all('p')
+            texto = ""
+            for p in parrafos:
+                texto = texto + p.getText()
+    except Exception as ex:
+        print("ERROR" + str(ex))
+        print(texto)
     return texto
-
-
-def loadCsvIntoDataSet(nombreArchivoEntrada):
-    csv = pd.read_csv(nombreArchivoEntrada, header=0, sep=',', quotechar='\"', encoding="utf-8")
-    return csv.values
 
 
 def alargar_url(req):
@@ -278,7 +285,7 @@ def getLinkDomain(link_url):
 def addColumnaTitulo(nombreArchivoEntrada):
     posts = loadCsvIntoDataSet(nombreArchivoEntrada).tolist()
     for i in range(0, len(posts) - 1):
-#    for i in range(28, 30):
+    #for i in range(1058, 1065):
         try:
             print(i)
             link_url = posts[i][3]
@@ -286,9 +293,9 @@ def addColumnaTitulo(nombreArchivoEntrada):
                 if(esLinkAOmitir(link_url)):
                     continue
 
-                for old, new in linkMovidos:
-                    if(old in link_url):
-                        link_url = link_url.replace(old, new)
+                for viejo in linkMovidos:
+                    if(viejo in link_url):
+                        link_url = link_url.replace(viejo, linkMovidos[viejo])
 
                 req = urllib.request.Request(link_url)
                 urlOriginal = alargar_url(req)
@@ -337,7 +344,7 @@ def addColumnaTitulo(nombreArchivoEntrada):
                 posts[i].append("LINK NULL")
         except Exception as ex:
             columnas = len(posts[i]) + 1
-            for _ in range(columnas, 13):
+            for _ in range(columnas, 14):
                 posts[i].append("TIME OUT")
             print("TIME OUT")
             print(ex)
@@ -345,9 +352,19 @@ def addColumnaTitulo(nombreArchivoEntrada):
     return posts
 
 
+def loadCsvIntoDataSet(nombreArchivoEntrada):
+    csv = pd.read_csv(nombreArchivoEntrada, header=0, sep=',', quotechar='\"', encoding="utf-8")
+    return csv.values
+
+
 def saveInCsv(postsFinal, nombreArchivoSalida):
     columns = ['tipo_post', 'post_id', 'post_link', 'link', 'link_domain', 'post_message', 'UrlCompleta', 'fecha_hora_diario', 'tema', 'volanta', 'titulo_diario', 'bajada', 'texto_diario']
     print(postsFinal)
+
+#    for i in range(0, 30):
+#        if(len(postsFinal[i]) > 12):
+#            k=0
+
     df = pd.DataFrame(data=postsFinal, columns=columns)
     df.to_csv(nombreArchivoSalida, index=False, columns=columns, sep=';', quoting=csv.QUOTE_ALL, quotechar='"')
 
