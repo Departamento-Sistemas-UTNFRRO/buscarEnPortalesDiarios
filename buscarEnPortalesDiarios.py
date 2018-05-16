@@ -23,6 +23,23 @@ import os
 import urllib.parse
 from datetime import datetime
 import locale
+import csv
+
+
+linkAOmitir = ['https://www.facebook.com/lanacion/photos',
+               'https://www.facebook.com/lanacion/videos',
+               'https://www.facebook.com/lndeportes/photos',
+               'http://www.youtube.com',
+               'http://youtu.be/',
+               'https://www.facebook.com/clarincom/videos',
+               'https://www.facebook.com/clarincom/photos'
+               ]
+
+linkMovidos = {'http://canchallena.lanacion': 'http://www.lanacion',
+               'http://personajes.lanacion': 'http://www.lanacion',
+               'https://www.ieco.clarin.com/ieco/economia': 'https://www.clarin.com/economia',
+               }
+
 
 def getHtml(req):
     try:
@@ -37,90 +54,106 @@ def getHtml(req):
 
 
 def getFechaNacion(soup):
-    if (soup is not None):
-        for tag in soup.find_all("meta"):
-            if tag.get("itemprop", None) == "datePublished":
-                return tag.get("content", None)
-        contenedor = soup.find(class_='fecha')
-        if(contenedor is not None):
-            fechaCompleta = contenedor.getText()
-            fechaCompleta = fechaCompleta.replace('\xa0•', '')
-            fechaCompleta = fechaCompleta.replace('de', '')
-            fechaCompleta = fechaCompleta.replace('  ', ' ')
-            fechaCompleta = fechaCompleta.replace('  ', ' ')
-            locale.setlocale(locale.LC_TIME, 'es_AR')
-            fechaCompleta = datetime.strptime(fechaCompleta, '%d %B %Y %H:%M')
-            return fechaCompleta.strftime('%d/%m/%Y %H:%M:%S')
+    try:
+        if (soup is not None):
+            for tag in soup.find_all("meta"):
+                if tag.get("itemprop", None) == "datePublished":
+                    return tag.get("content", None)
+            contenedor = soup.find(class_='fecha')
+            if(contenedor is not None):
+                fechaCompleta = contenedor.getText()
+                fechaCompleta = fechaCompleta.replace('\xa0', '')
+                fechaCompleta = fechaCompleta.replace('de', '')
+                fechaCompleta = fechaCompleta.replace('•', '')
+                fechaCompleta = fechaCompleta.replace('  ', ' ')
+                fechaCompleta = fechaCompleta.replace('  ', ' ')
+                fechaCompleta = fechaCompleta.strip()
+                locale.setlocale(locale.LC_TIME, 'es_AR')
+                if('•' in contenedor.getText()):
+                    fechaCompleta = datetime.strptime(fechaCompleta, '%d %B %Y %H:%M')
+                else:
+                    fechaCompleta = datetime.strptime(fechaCompleta, '%d %B %Y')
+                return fechaCompleta.strftime('%d/%m/%Y %H:%M:%S')
+    except Exception as ex:
+        print("ERROR" + str(ex))
     return "FECHA NO ENCONTRADA"
 
 
 def getTemaNacion(soup):
-    if (soup is not None):
-        contenedor = soup.find(class_='path floatFix breadcrumb')
-        if(contenedor is None):
-            contenedor = soup.find(class_='path patrocinado floatFix breadcrumb')
-        if(contenedor is None):
-            contenedor = soup.find(class_='temas')
+    try:
+        if (soup is not None):
+            contenedor = soup.find(class_='path floatFix breadcrumb')
+            if(contenedor is None):
+                contenedor = soup.find(class_='path patrocinado floatFix breadcrumb')
+            if(contenedor is None):
+                contenedor = soup.find(class_='temas')
+                if (contenedor is not None):
+                    elementosContenedor = contenedor.find_all("a")
+                    if(elementosContenedor is not None):
+                        return elementosContenedor[0].getText()
             if (contenedor is not None):
-                elementosContenedor = contenedor.find_all("a")
+                elementosContenedor = contenedor.find_all("span")
                 if(elementosContenedor is not None):
-                    return elementosContenedor[0].getText()
-        if (contenedor is not None):
-            elementosContenedor = contenedor.find_all("span")
-            if(elementosContenedor is not None):
-                tag = elementosContenedor[1]
-                if tag.get("itemprop", None) == "name":
-                    return tag.getText()
-        
+                    tag = elementosContenedor[1]
+                    if tag.get("itemprop", None) == "name":
+                        return tag.getText()
+    except Exception as ex:
+        print("ERROR" + str(ex))
+       
     return "TEMA NO ENCONTRADO"
 
 
 def getVolantaNacion(soup):
-    if (soup is not None):
-        contenedor = soup.find(class_='path floatFix breadcrumb')
-        if(contenedor is None):
-            contenedor = soup.find(class_='path patrocinado floatFix breadcrumb')
-        if(contenedor is None):
-            contenedor = soup.find(class_='path tema-espacio-hsbc floatFix breadcrumb')
-        if(contenedor is None):
-            contenedor = soup.find(class_='temas')
-            if (contenedor is not None):
-                elementosContenedor = contenedor.find_all("a")
-                if(elementosContenedor is not None):
-                    return elementosContenedor[1].getText()
-        if(contenedor is not None):
-            elementosContenedor = contenedor.find_all("span")
-            if(elementosContenedor is not None and len(elementosContenedor) > 2):
-                tag = elementosContenedor[2]
-                if tag.get("itemprop", None) == "name":
-                    return tag.getText()
+    try:
+        if (soup is not None):
+            contenedor = soup.find(class_='path floatFix breadcrumb')
+            if(contenedor is None):
+                contenedor = soup.find(class_='path patrocinado floatFix breadcrumb')
+            if(contenedor is None):
+                contenedor = soup.find(class_='path tema-espacio-hsbc floatFix breadcrumb')
+            if(contenedor is None):
+                contenedor = soup.find(class_='temas')
+                if (contenedor is not None):
+                    elementosContenedor = contenedor.find_all("a")
+                    if(elementosContenedor is not None and len(elementosContenedor) > 1):
+                        return elementosContenedor[1].getText()
+            if(contenedor is not None):
+                elementosContenedor = contenedor.find_all("span")
+                if(elementosContenedor is not None and len(elementosContenedor) > 2):
+                    tag = elementosContenedor[2]
+                    if tag.get("itemprop", None) == "name":
+                        return tag.getText()
+    except Exception as ex:
+        print("ERROR" + str(ex))
+
     return "VOLANTA NO ENCONTRADA"
 
 
 def getTituloDiario(soup):
-    if (soup is not None):
-        if (soup.h1 is not None):
-            return(soup.h1.getText())
-        else:
-            return "TITULO No Encontrado"
-    else:
-        return "SOUP No Encontrado 2"
+    try:
+        if (soup is not None):
+            if (soup.h1 is not None):
+                return(soup.h1.getText())
+            else:
+                return "TITULO No Encontrado"
+    except Exception as ex:
+        print("ERROR" + str(ex))
+
+    return "SOUP No Encontrado 2"
 
 
 def getBajadaNacion(soup):
+    texto = "BAJADA NO ENCONTRADA"
     if (soup is not None):
-        texto = "BAJADA NO ENCONTRADA"
-        if (soup is not None):
-            try:
-                # Clarín
-                bajada = soup.find(class_="bajada")
-                # porque class es una palabra reservada
-                if(bajada is not None):
-                    texto = ""
-                    texto = bajada.getText()
-            except Exception as ex:
-                print("ERROR" + str(ex))
-                print(texto)
+        try:
+            # Clarín
+            bajada = soup.find(class_="bajada")
+            # porque class es una palabra reservada
+            if(bajada is not None):
+                texto = bajada.getText()
+        except Exception as ex:
+            print("ERROR" + str(ex))
+            print(texto)
     return texto
 
 
@@ -130,10 +163,11 @@ def getTextoDiarioLaNacion(soup):
         # La Nación
         try:
             cuerpo = soup.find(id='cuerpo')
-            parrafos = cuerpo.find_all('p')
-            texto = ""
-            for p in parrafos:
-                texto = texto + p.getText()
+            if(cuerpo is not None):
+                parrafos = cuerpo.find_all('p')
+                texto = ""
+                for p in parrafos:
+                    texto = texto + p.getText()
         except Exception as ex:
             print("ERROR" + str(ex))
             print(texto)
@@ -147,10 +181,11 @@ def getTextoDiarioClarin(soup):
             # Clarín
             cuerpo = soup.find(class_='body-nota')
             # porque class es una palabra reservada
-            parrafos = cuerpo.find_all('p')
-            texto = ""
-            for p in parrafos:
-                texto = texto + p.getText()
+            if(cuerpo is not None):
+                parrafos = cuerpo.find_all('p')
+                texto = ""
+                for p in parrafos:
+                    texto = texto + p.getText()
         except Exception as ex:
             print("ERROR" + str(ex))
             print(texto)
@@ -171,7 +206,8 @@ def getTemaClarin(soup):
             # Clarín
             tema = soup.find(class_='header-section-name')
             texto = ""
-            texto = tema.getText()
+            if(tema is not None):
+                texto = tema.getText()
         except Exception as ex:
             print("ERROR" + str(ex))
             print(texto)
@@ -185,7 +221,8 @@ def getVolantaClarin(soup):
             # Clarín
             volanta = soup.find(class_='volanta')
             texto = ""
-            texto = volanta.getText()
+            if (volanta is not None):
+                texto = volanta.getText()
         except Exception as ex:
             print("ERROR" + str(ex))
             print(texto)
@@ -198,10 +235,11 @@ def getBajadaDiarioClarin(soup):
         try:
             # Clarín
             bajada = soup.find(class_='bajada')
-            parrafos = bajada.find_all('p')
-            texto = ""
-            for p in parrafos:
-                texto = texto + p.getText()
+            if(bajada is not None):
+                parrafos = bajada.find_all('p')
+                texto = ""
+                for p in parrafos:
+                    texto = texto + p.getText()
         except Exception as ex:
             print("ERROR" + str(ex))
             print(texto)
@@ -222,14 +260,32 @@ def alargar_url(req):
     
     return None
 
+
+def esLinkAOmitir(link_url):
+    '''Determina si el link puede ser procesado o no'''
+    for link in linkAOmitir:
+        if link in link_url:
+            return True
+    return False
+
+
 def addColumnaTitulo(nombreArchivoEntrada):
     posts = loadCsvIntoDataSet(nombreArchivoEntrada).tolist()
-#    for i in range(0, len(posts) - 1):
-    for i in range(22, 27):
+    for i in range(0, len(posts) - 1):
+#    for i in range(28, 30):
         try:
             print(i)
-            if (not(pd.isnull(posts[i][3]))):
-                req = urllib.request.Request(posts[i][3])
+            link_url = posts[i][3]
+            if (not(pd.isnull(link_url))):
+
+                if(esLinkAOmitir(link_url)):
+                    continue
+                
+                for old, new in linkMovidos:
+                    if(old in link_url):
+                        link_url = link_url.replace(old, new)
+
+                req = urllib.request.Request(link_url)
                 urlOriginal = alargar_url(req)
                 if(not(pd.isnull(urlOriginal)) and not(urlOriginal is None)):
                     parsed_uri = urllib.parse.urlparse(urlOriginal)
@@ -247,7 +303,6 @@ def addColumnaTitulo(nombreArchivoEntrada):
                         posts[i].append(getTextoDiarioLaNacion(soup))
                     elif('clarin.com' in urlOriginal):
                         soup = getHtml(req)
-
                         posts[i].append(getFechaClarin(soup))
                         posts[i].append(getTemaClarin(soup))
                         posts[i].append(getVolantaClarin(soup))
@@ -291,10 +346,10 @@ def saveInCsv(postsFinal, nombreArchivoSalida):
     columns = ['tipo_post', 'post_id', 'post_link', 'link', 'link_domain', 'post_message', 'UrlCompleta', 'fecha_hora_diario', 'tema', 'volanta', 'titulo_diario', 'bajada', 'texto_diario']
     print(postsFinal)
     df = pd.DataFrame(data=postsFinal, columns=columns)
-    df.to_csv(nombreArchivoSalida, index=False, columns=columns, sep=';', quotechar='"')
+    df.to_csv(nombreArchivoSalida, index=False, columns=columns, sep=';',quoting=csv.QUOTE_ALL, quotechar='"')
 
 
-nombreArchivoEntrada = os.path.join(os.path.dirname(__file__), 'data', 'buscar_links_faltantes.csv')
+nombreArchivoEntrada = os.path.join(os.path.dirname(__file__), 'data', 'buscar_info_en_portales_1129.csv')
 nombreArchivoSalida = os.path.join(os.path.dirname(__file__), 'data', 'post_output.csv')
 postsConTitulo = addColumnaTitulo(nombreArchivoEntrada)
 saveInCsv(postsConTitulo, nombreArchivoSalida)
