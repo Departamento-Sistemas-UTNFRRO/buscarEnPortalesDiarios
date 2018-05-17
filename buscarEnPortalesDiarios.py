@@ -105,38 +105,39 @@ def getTemaNacion(soup):
                         return tag.getText()
     except Exception as ex:
         print("ERROR" + str(ex))
-       
     return "TEMA NO ENCONTRADO"
 
 
 def getVolantaNacion(soup):
+    result = "VOLANTA NO ENCONTRADA"
+    if (soup is not None):
+        return result
+
     try:
-        if (soup is not None):
+        contenedor = soup.find(class_='temas')
+        if (contenedor is not None):
+            elementosContenedor = contenedor.find_all("a")
+            if(elementosContenedor is not None and len(elementosContenedor) > 1):
+                return elementosContenedor[1].getText()
+        if(contenedor is None):
             contenedor = soup.find(class_='path floatFix breadcrumb')
-            if(contenedor is None):
-                contenedor = soup.find(class_='path patrocinado floatFix breadcrumb')
-            if(contenedor is None):
-                contenedor = soup.find(class_='path tema-espacio-hsbc floatFix breadcrumb')
-            if(contenedor is None):
-                contenedor = soup.find(class_='temas')
-                if (contenedor is not None):
-                    elementosContenedor = contenedor.find_all("a")
-                    if(elementosContenedor is not None and len(elementosContenedor) > 1):
-                        return elementosContenedor[1].getText()
-            if(contenedor is not None):
-                elementosContenedor = contenedor.find_all("span")
-                if(elementosContenedor is not None and len(elementosContenedor) > 2):
-                    tag = elementosContenedor[2]
-                    if tag.get("itemprop", None) == "name":
-                        return tag.getText()
+        if(contenedor is None):
+            contenedor = soup.find(class_='path patrocinado floatFix breadcrumb')
+        if(contenedor is None):
+            contenedor = soup.find(class_='path tema-espacio-hsbc floatFix breadcrumb')
+        if(contenedor is not None):
+            elementosContenedor = contenedor.find_all("span")
+            if(elementosContenedor is not None and len(elementosContenedor) > 2):
+                tag = elementosContenedor[2]
+                if tag.get("itemprop", None) == "name":
+                    return tag.getText()
     except Exception as ex:
         print("ERROR" + str(ex))
-
-    return "VOLANTA NO ENCONTRADA"
+    return result
 
 
 def getTituloDiario(soup):
-    result = "TITULO No Encontrado"
+    result = "TITULO NO ENCONTRADO"
     if (soup is None):
         return result
 
