@@ -86,26 +86,29 @@ def getFechaNacion(soup):
 
 
 def getTemaNacion(soup):
+    result = "TEMA NO ENCONTRADO"
+    if (soup is not None):
+        return result
+
     try:
-        if (soup is not None):
-            contenedor = soup.find(class_='path floatFix breadcrumb')
-            if(contenedor is None):
-                contenedor = soup.find(class_='path patrocinado floatFix breadcrumb')
-            if(contenedor is None):
-                contenedor = soup.find(class_='temas')
-                if (contenedor is not None):
-                    elementosContenedor = contenedor.find_all("a")
-                    if(elementosContenedor is not None):
-                        return elementosContenedor[0].getText()
-            if (contenedor is not None):
-                elementosContenedor = contenedor.find_all("span")
-                if(elementosContenedor is not None):
-                    tag = elementosContenedor[1]
-                    if tag.get("itemprop", None) == "name":
-                        return tag.getText()
+        contenedor = soup.find(class_='temas')
+        if (contenedor is not None):
+            elementosContenedor = contenedor.find_all("a")
+            if(elementosContenedor is not None):
+                return elementosContenedor[0].getText()
+
+        contenedor = soup.find(class_='path floatFix breadcrumb')
+        if(contenedor is None):
+            contenedor = soup.find(class_='path patrocinado floatFix breadcrumb')
+        if (contenedor is not None):
+            elementosContenedor = contenedor.find_all("span")
+            if(elementosContenedor is not None):
+                tag = elementosContenedor[1]
+                if tag.get("itemprop", None) == "name":
+                    return tag.getText()
     except Exception as ex:
         print("ERROR" + str(ex))
-    return "TEMA NO ENCONTRADO"
+    return result
 
 
 def getVolantaNacion(soup):
@@ -119,8 +122,8 @@ def getVolantaNacion(soup):
             elementosContenedor = contenedor.find_all("a")
             if(elementosContenedor is not None and len(elementosContenedor) > 1):
                 return elementosContenedor[1].getText()
-        if(contenedor is None):
-            contenedor = soup.find(class_='path floatFix breadcrumb')
+
+        contenedor = soup.find(class_='path floatFix breadcrumb')
         if(contenedor is None):
             contenedor = soup.find(class_='path patrocinado floatFix breadcrumb')
         if(contenedor is None):
