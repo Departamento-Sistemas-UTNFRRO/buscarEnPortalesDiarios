@@ -366,7 +366,7 @@ def saveInCsv(postsFinal, nombreArchivoSalida):
 #            k=0
 
     df = pd.DataFrame(data=postsFinal, columns=columns)
-    df.to_csv(nombreArchivoSalida, index=False, columns=columns, sep=';', quoting=csv.QUOTE_ALL, quotechar='"', encoding="utf-8")
+    df.to_csv(nombreArchivoSalida, index=False, columns=columns, sep=';', quoting=csv.QUOTE_ALL, doublequote=True, quotechar='"', encoding="utf-8")
 
 
 nombreArchivoEntrada = os.path.join(os.path.dirname(__file__), 'data', 'buscar_info_en_portales_1129.csv')
