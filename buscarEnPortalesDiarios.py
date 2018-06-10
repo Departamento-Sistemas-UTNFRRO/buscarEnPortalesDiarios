@@ -87,7 +87,7 @@ def getFechaNacion(soup):
 
 def getTemaNacion(soup):
     result = "TEMA NO ENCONTRADO"
-    if (soup is not None):
+    if (soup is None):
         return result
 
     try:
@@ -113,7 +113,7 @@ def getTemaNacion(soup):
 
 def getVolantaNacion(soup):
     result = "VOLANTA NO ENCONTRADA"
-    if (soup is not None):
+    if (soup is None):
         return result
 
     try:
@@ -169,7 +169,7 @@ def getBajadaNacion(soup):
 
 def getTextoDiarioLaNacion(soup):
     texto = "TEXTO DIARIO NO ENCONTRADO"
-    if (soup is not None):
+    if (soup is None):
         return texto
 
     try:
@@ -187,7 +187,7 @@ def getTextoDiarioLaNacion(soup):
 
 def getTextoDiarioClarin(soup):
     texto = "TEXTO DIARIO NO ENCONTRADO"
-    if (soup is not None):
+    if (soup is None):
         return texto
 
     try:
@@ -286,10 +286,8 @@ def getLinkDomain(link_url):
     return '{uri.netloc}'.format(uri=parsed_uri)
 
 
-def addColumnaTitulo(nombreArchivoEntrada):
-    posts = loadCsvIntoDataSet(nombreArchivoEntrada).tolist()
-    for i in range(0, len(posts) - 1):
-    #for i in range(1058, 1065):
+def buscarInformacionPortales(posts, inicio, fin):
+    for i in range(inicio, fin):
         try:
             print(i)
             link_url = posts[i][3]
@@ -361,19 +359,23 @@ def loadCsvIntoDataSet(nombreArchivoEntrada):
     return csv.values
 
 
-def saveInCsv(postsFinal, nombreArchivoSalida):
-    columns = ['tipo_post', 'post_id', 'post_link', 'link', 'link_domain', 'post_message', 'UrlCompleta', 'fecha_hora_diario', 'tema', 'volanta', 'titulo_diario', 'bajada', 'texto_diario']
-    print(postsFinal)
-
-#    for i in range(0, 30):
-#        if(len(postsFinal[i]) > 12):
-#            k=0
-
+def guardarEnCSV(postsFinal, nombreArchivoSalida):
+    columns = ['tipo_post', 'post_id', 'post_link', 'link', 'link_domain', 'post_message', 'UrlCompleta', 'fecha_hora_diario', 'tema', 'volanta', 'titulo_diario', 'bajada', 'texto_diario', 'a']
     df = pd.DataFrame(data=postsFinal, columns=columns)
     df.to_csv(nombreArchivoSalida, index=False, columns=columns, sep=';', quoting=csv.QUOTE_ALL, doublequote=True, quotechar='"', encoding="utf-8")
 
 
-nombreArchivoEntrada = os.path.join(os.path.dirname(__file__), 'data', 'buscar_info_en_portales_1129.csv')
-nombreArchivoSalida = os.path.join(os.path.dirname(__file__), 'data', 'post_output.csv')
-postsConTitulo = addColumnaTitulo(nombreArchivoEntrada)
-saveInCsv(postsConTitulo, nombreArchivoSalida)
+def armarRutaDatos(nombreArchivo):
+    rutaADatos = os.path.join(os.path.dirname(__file__), 'data', nombreArchivo)
+    return rutaADatos
+
+
+nombreArchivoEntrada = armarRutaDatos('post_output_restantes.csv')
+nombreArchivoSalida = armarRutaDatos('post_output.csv')
+posts = loadCsvIntoDataSet(nombreArchivoEntrada).tolist()
+
+inicio = 0
+fin = len(posts)
+
+postsConTitulo = buscarInformacionPortales(posts, inicio, fin)
+guardarEnCSV(postsConTitulo, nombreArchivoSalida)
