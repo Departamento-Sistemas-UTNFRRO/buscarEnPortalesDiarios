@@ -26,264 +26,291 @@ import locale
 import csv
 
 
-linkAOmitir = ['https://www.facebook.com/lanacion/photos',
-               'https://www.facebook.com/lanacion/videos',
-               'https://www.facebook.com/lndeportes/photos',
-               'https://www.facebook.com/clarincom/videos',
-               'https://www.facebook.com/clarincom/photos',
-               'http://www.youtube.com',
-               'http://youtu.be/',
-               'blogs.lanacion',
-               '\\N'
-               ]
+class Link(object):
+    def __init__(self, linkURL):
+        self.linksAOmitir = [
+            'https://www.facebook.com/lanacion/photos',
+            'https://www.facebook.com/lanacion/videos',
+            'https://www.facebook.com/lndeportes/photos',
+            'https://www.facebook.com/clarincom/videos',
+            'https://www.facebook.com/clarincom/photos',
+            'http://www.youtube.com',
+            'http://youtu.be/',
+            'blogs.lanacion',
+            '\\N'
+        ]
 
-linkMovidos = {'http://canchallena.lanacion': 'http://www.lanacion',
-               'http://personajes.lanacion': 'http://www.lanacion',
-               'https://www.ieco.clarin.com/ieco/economia': 'https://www.clarin.com/economia',
-               }
+        self.linkMovidos = {
+            'http://canchallena.lanacion': 'http://www.lanacion',
+            'http://personajes.lanacion': 'http://www.lanacion',
+            'https://www.ieco.clarin.com/ieco/economia': 'https://www.clarin.com/economia',
+        }
 
+        self.linkOriginal = linkURL
 
-def getHtml(req):
-    try:
-        resp = urllib.request.urlopen(req)
-        html = resp.read()
-        soup = bs4.BeautifulSoup(html, 'html.parser')
-        return soup
-    except Exception as ex:
-        print("ERROR" + str(ex))
+        for viejo in self.linkMovidos:
+            if(viejo in self.linkOriginal):
+                self.linkOriginal = self.linkOriginal.replace(viejo, self.linkMovidos[viejo])
+
+        self.req = urllib.request.Request(self.linkOriginal)
+        self.linkReal = self.alargar_url(self.req)
+        self.linkDomain = self.getLinkDomain()
+
+    def esLinkAOmitir(self):
+        '''Determina si el link puede ser procesado o no'''
+        if pd.isnull(self.linkOriginal):
+            return False
+
+        for linkAOmitir in self.linksAOmitir:
+            if linkAOmitir in self.linkOriginal:
+                return True
+
+        if self.linkReal is None or pd.isnull(self.linkReal):
+            return True
+
+        return False
+
+    def getLinkDomain(self):
+        '''Devuelve el dominio del link'''
+        parsed_uri = urllib.parse.urlparse(self.linkReal)
+        return '{uri.netloc}'.format(uri=parsed_uri)
+
+    def alargar_url(self, req):
+        try:
+            resolvedURL = urllib.request.urlopen(req)
+            return resolvedURL.url
+        except Exception as ex:
+            print("ERROR" + str(ex))
         return None
 
+    def getHtmlSoup(self):
+        try:
+            resp = urllib.request.urlopen(self.req)
+            html = resp.read()
+            soup = bs4.BeautifulSoup(html, 'html.parser')
+            return soup
+        except Exception as ex:
+            print("ERROR" + str(ex))
+            return None
 
-def getFechaNacion(soup):
-    fechaNacion = "FECHA NO ENCONTRADA"
-    if (soup is None):
+
+class NacionPost(object):
+    def __init__(self, link):
+        self.soup = link.getHtmlSoup()
+
+    def getFecha(self):
+        fechaNacion = "FECHA NO ENCONTRADA"
+        if self.soup is None:
+            return fechaNacion
+
+        try:
+            for tag in self.soup.find_all("meta"):
+                if tag.get("itemprop", None) == "datePublished":
+                        return tag.get("content", None)
+            contenedor = self.soup.find(class_='fecha')
+            if contenedor is not None:
+                fechaCompleta = contenedor.getText()
+                fechaCompleta = fechaCompleta.replace('\xa0', '')
+                fechaCompleta = fechaCompleta.replace('de', '')
+                fechaCompleta = fechaCompleta.replace('•', '')
+                fechaCompleta = fechaCompleta.replace('  ', ' ')
+                fechaCompleta = fechaCompleta.replace('  ', ' ')
+                fechaCompleta = fechaCompleta.strip()
+                locale.setlocale(locale.LC_TIME, 'es_AR')
+                if '•' in contenedor.getText():
+                    fechaCompleta = datetime.strptime(
+                        fechaCompleta, '%d %B %Y %H:%M')
+                else:
+                    fechaCompleta = datetime.strptime(
+                        fechaCompleta, '%d %B %Y')
+                fechaNacion = fechaCompleta.strftime('%d/%m/%Y %H:%M:%S')
+        except Exception as ex:
+            print("ERROR" + str(ex))
         return fechaNacion
 
-    try:
-        for tag in soup.find_all("meta"):
+    def getTema(self):
+        result = "TEMA NO ENCONTRADO"
+        if self.soup is None:
+            return result
+
+        try:
+            contenedor = self.soup.find(class_='temas')
+            if contenedor is not None:
+                elementosContenedor = contenedor.find_all("a")
+                if elementosContenedor is not None:
+                    return elementosContenedor[0].getText()
+
+            contenedor = self.soup.find(class_='path floatFix breadcrumb')
+            if contenedor is None:
+                contenedor = self.soup.find(class_='path patrocinado floatFix breadcrumb')
+            if contenedor is not None:
+                elementosContenedor = contenedor.find_all("span")
+                if elementosContenedor is not None:
+                    tag = elementosContenedor[1]
+                    if tag.get("itemprop", None) == "name":
+                        return tag.getText()
+        except Exception as ex:
+            print("ERROR" + str(ex))
+        return result
+
+    def getVolanta(self):
+        result = "VOLANTA NO ENCONTRADA"
+        if self.soup is None:
+            return result
+
+        try:
+            contenedor = self.soup.find(class_='temas')
+            if contenedor is not None:
+                elementosContenedor = contenedor.find_all("a")
+                if elementosContenedor is not None and len(elementosContenedor) > 1:
+                    return elementosContenedor[1].getText()
+
+            contenedor = self.soup.find(class_='path floatFix breadcrumb')
+            if contenedor is None:
+                contenedor = self.soup.find(class_='path patrocinado floatFix breadcrumb')
+            if contenedor is None:
+                contenedor = self.soup.find(class_='path tema-espacio-hsbc floatFix breadcrumb')
+            if contenedor is not None:
+                elementosContenedor = contenedor.find_all("span")
+                if elementosContenedor is not None and len(elementosContenedor) > 2:
+                    tag = elementosContenedor[2]
+                    if tag.get("itemprop", None) == "name":
+                        return tag.getText()
+        except Exception as ex:
+            print("ERROR" + str(ex))
+        return result
+
+    def getTitulo(self):
+        result = "TITULO NO ENCONTRADO"
+        if self.soup is None:
+            return result
+
+        try:
+            if self.soup.h1 is not None:
+                result = self.soup.h1.getText()
+        except Exception as ex:
+            print("ERROR" + str(ex))
+        return result
+
+    def getBajada(self):
+        texto = "BAJADA NO ENCONTRADA"
+        if self.soup is None:
+            return texto
+        try:
+            bajada = self.soup.find(class_="bajada")
+            # porque class es una palabra reservada
+            if bajada is not None:
+                texto = bajada.getText()
+        except Exception as ex:
+            print("ERROR" + str(ex))
+            print(texto)
+        return texto
+
+    def getTextoDiario(self):
+        texto = "TEXTO DIARIO NO ENCONTRADO"
+        if self.soup is None:
+            return texto
+
+        try:
+            cuerpo = self.soup.find(id='cuerpo')
+            if cuerpo is not None:
+                parrafos = cuerpo.find_all('p')
+                texto = ""
+                for p in parrafos:
+                    texto = texto + p.getText()
+        except Exception as ex:
+            print("ERROR" + str(ex))
+            print(texto)
+        return texto
+
+
+class ClarinPost(object):
+    def __init__(self, link):
+        self.soup = link.getHtmlSoup()
+
+    def getTitulo(self):
+        result = "TITULO NO ENCONTRADO"
+        if self.soup is None:
+            return result
+
+        try:
+            if self.soup.h1 is not None:
+                result = self.soup.h1.getText()
+        except Exception as ex:
+            print("ERROR" + str(ex))
+        return result
+
+    def getTextoDiario(self):
+        texto = "TEXTO DIARIO NO ENCONTRADO"
+        if self.soup is None:
+            return texto
+
+        try:
+            cuerpo = self.soup.find(class_='body-nota')
+            # porque class es una palabra reservada
+            if cuerpo is not None:
+                parrafos = cuerpo.find_all('p')
+                texto = ""
+                for p in parrafos:
+                    texto = texto + p.getText()
+        except Exception as ex:
+            print("ERROR" + str(ex))
+            print(texto)
+        return texto
+
+    def getFecha(self):
+        for tag in self.soup.find_all("meta"):
             if tag.get("itemprop", None) == "datePublished":
-                    return tag.get("content", None)
-        contenedor = soup.find(class_='fecha')
-        if(contenedor is not None):
-            fechaCompleta = contenedor.getText()
-            fechaCompleta = fechaCompleta.replace('\xa0', '')
-            fechaCompleta = fechaCompleta.replace('de', '')
-            fechaCompleta = fechaCompleta.replace('•', '')
-            fechaCompleta = fechaCompleta.replace('  ', ' ')
-            fechaCompleta = fechaCompleta.replace('  ', ' ')
-            fechaCompleta = fechaCompleta.strip()
-            locale.setlocale(locale.LC_TIME, 'es_AR')
-            if('•' in contenedor.getText()):
-                fechaCompleta = datetime.strptime(
-                    fechaCompleta, '%d %B %Y %H:%M')
-            else:
-                fechaCompleta = datetime.strptime(
-                    fechaCompleta, '%d %B %Y')
-            fechaNacion = fechaCompleta.strftime('%d/%m/%Y %H:%M:%S')
-    except Exception as ex:
-        print("ERROR" + str(ex))
-    return fechaNacion
+                return tag.get("content", None)
+        return "FECHA NO ENCONTRADA"
 
+    def getTema(self):
+        texto = "TEMA  NO ENCONTRADO"
+        if self.soup is None:
+            return texto
 
-def getTemaNacion(soup):
-    result = "TEMA NO ENCONTRADO"
-    if (soup is None):
-        return result
-
-    try:
-        contenedor = soup.find(class_='temas')
-        if (contenedor is not None):
-            elementosContenedor = contenedor.find_all("a")
-            if(elementosContenedor is not None):
-                return elementosContenedor[0].getText()
-
-        contenedor = soup.find(class_='path floatFix breadcrumb')
-        if(contenedor is None):
-            contenedor = soup.find(class_='path patrocinado floatFix breadcrumb')
-        if (contenedor is not None):
-            elementosContenedor = contenedor.find_all("span")
-            if(elementosContenedor is not None):
-                tag = elementosContenedor[1]
-                if tag.get("itemprop", None) == "name":
-                    return tag.getText()
-    except Exception as ex:
-        print("ERROR" + str(ex))
-    return result
-
-
-def getVolantaNacion(soup):
-    result = "VOLANTA NO ENCONTRADA"
-    if (soup is None):
-        return result
-
-    try:
-        contenedor = soup.find(class_='temas')
-        if (contenedor is not None):
-            elementosContenedor = contenedor.find_all("a")
-            if(elementosContenedor is not None and len(elementosContenedor) > 1):
-                return elementosContenedor[1].getText()
-
-        contenedor = soup.find(class_='path floatFix breadcrumb')
-        if(contenedor is None):
-            contenedor = soup.find(class_='path patrocinado floatFix breadcrumb')
-        if(contenedor is None):
-            contenedor = soup.find(class_='path tema-espacio-hsbc floatFix breadcrumb')
-        if(contenedor is not None):
-            elementosContenedor = contenedor.find_all("span")
-            if(elementosContenedor is not None and len(elementosContenedor) > 2):
-                tag = elementosContenedor[2]
-                if tag.get("itemprop", None) == "name":
-                    return tag.getText()
-    except Exception as ex:
-        print("ERROR" + str(ex))
-    return result
-
-
-def getTituloDiario(soup):
-    result = "TITULO NO ENCONTRADO"
-    if (soup is None):
-        return result
-
-    try:
-        if (soup.h1 is not None):
-            result = soup.h1.getText()
-    except Exception as ex:
-        print("ERROR" + str(ex))
-    return result
-
-
-def getBajadaNacion(soup):
-    texto = "BAJADA NO ENCONTRADA"
-    if (soup is None):
-        return texto
-    try:
-        bajada = soup.find(class_="bajada")
-        # porque class es una palabra reservada
-        if(bajada is not None):
-            texto = bajada.getText()
-    except Exception as ex:
-        print("ERROR" + str(ex))
-        print(texto)
-    return texto
-
-
-def getTextoDiarioLaNacion(soup):
-    texto = "TEXTO DIARIO NO ENCONTRADO"
-    if (soup is None):
-        return texto
-
-    try:
-        cuerpo = soup.find(id='cuerpo')
-        if(cuerpo is not None):
-            parrafos = cuerpo.find_all('p')
+        try:
+            # Clarín
+            tema = self.soup.find(class_='header-section-name')
             texto = ""
-            for p in parrafos:
-                texto = texto + p.getText()
-    except Exception as ex:
-        print("ERROR" + str(ex))
-        print(texto)
-    return texto
-
-
-def getTextoDiarioClarin(soup):
-    texto = "TEXTO DIARIO NO ENCONTRADO"
-    if (soup is None):
+            if tema is not None:
+                texto = tema.getText()
+        except Exception as ex:
+            print("ERROR" + str(ex))
+            print(texto)
         return texto
 
-    try:
-        cuerpo = soup.find(class_='body-nota')
-        # porque class es una palabra reservada
-        if(cuerpo is not None):
-            parrafos = cuerpo.find_all('p')
+    def getVolanta(self):
+        texto = "VOLANTA NO ENCONTRADA"
+        if self.soup is None:
+            return texto
+
+        try:
+            volanta = self.soup.find(class_='volanta')
             texto = ""
-            for p in parrafos:
-                texto = texto + p.getText()
-    except Exception as ex:
-        print("ERROR" + str(ex))
-        print(texto)
-    return texto
-
-
-def getFechaClarin(soup):
-
-    for tag in soup.find_all("meta"):
-        if tag.get("itemprop", None) == "datePublished":
-            return tag.get("content", None)
-    return "FECHA NO ENCONTRADA"
-
-
-def getTemaClarin(soup):
-    texto = "TEMA  NO ENCONTRADO"
-    if (soup is None):
+            if volanta is not None:
+                texto = volanta.getText()
+        except Exception as ex:
+            print("ERROR" + str(ex))
+            print(texto)
         return texto
 
-    try:
-        # Clarín
-        tema = soup.find(class_='header-section-name')
-        texto = ""
-        if(tema is not None):
-            texto = tema.getText()
-    except Exception as ex:
-        print("ERROR" + str(ex))
-        print(texto)
-    return texto
+    def getBajada(self):
+        texto = "BAJADA NO ENCONTRADA"
+        if self.soup is None:
+            return texto
 
-
-def getVolantaClarin(soup):
-    texto = "VOLANTA NO ENCONTRADA"
-    if (soup is None):
+        try:
+            bajada = self.soup.find(class_='bajada')
+            if bajada is not None:
+                parrafos = bajada.find_all('p')
+                texto = ""
+                for p in parrafos:
+                    texto = texto + p.getText()
+        except Exception as ex:
+            print("ERROR" + str(ex))
+            print(texto)
         return texto
-
-    try:
-        volanta = soup.find(class_='volanta')
-        texto = ""
-        if (volanta is not None):
-            texto = volanta.getText()
-    except Exception as ex:
-        print("ERROR" + str(ex))
-        print(texto)
-    return texto
-
-
-def getBajadaDiarioClarin(soup):
-    texto = "BAJADA NO ENCONTRADA"
-    if (soup is None):
-        return texto
-
-    try:
-        bajada = soup.find(class_='bajada')
-        if(bajada is not None):
-            parrafos = bajada.find_all('p')
-            texto = ""
-            for p in parrafos:
-                texto = texto + p.getText()
-    except Exception as ex:
-        print("ERROR" + str(ex))
-        print(texto)
-    return texto
-
-
-def alargar_url(req):
-    try:
-        resolvedURL = urllib.request.urlopen(req)
-        return resolvedURL.url
-    except Exception as ex:
-        print("ERROR" + str(ex))
-    return None
-
-
-def esLinkAOmitir(link_url):
-    '''Determina si el link puede ser procesado o no'''
-    for link in linkAOmitir:
-        if link in link_url:
-            return True
-    return False
-
-
-def getLinkDomain(link_url):
-    '''Devuelve el dominio del link'''
-    parsed_uri = urllib.parse.urlparse(link_url)
-    return '{uri.netloc}'.format(uri=parsed_uri)
 
 
 def buscarInformacionPortales(posts, inicio, fin):
@@ -291,51 +318,34 @@ def buscarInformacionPortales(posts, inicio, fin):
         try:
             print(i)
             link_url = posts[i][3]
-            if (not(pd.isnull(link_url))):
-                if(esLinkAOmitir(link_url)):
-                    continue
+            link = Link(link_url)
+            if not link.esLinkAOmitir():
+                posts[i][4] = link.linkDomain
+                posts[i].append(link.linkReal)
 
-                for viejo in linkMovidos:
-                    if(viejo in link_url):
-                        link_url = link_url.replace(viejo, linkMovidos[viejo])
-
-                req = urllib.request.Request(link_url)
-                urlOriginal = alargar_url(req)
-                if(not(pd.isnull(urlOriginal)) and not(urlOriginal is None)):
-                    posts[i][4] = getLinkDomain(urlOriginal)
-                    posts[i].append(urlOriginal)
-
-                    if ('lanacion.com' in urlOriginal):
-                        soup = getHtml(req)
-                        posts[i].append(getFechaNacion(soup))
-                        posts[i].append(getTemaNacion(soup))
-                        posts[i].append(getVolantaNacion(soup))
-                        posts[i].append(getTituloDiario(soup))
-                        posts[i].append(getBajadaNacion(soup))
-                        posts[i].append(getTextoDiarioLaNacion(soup))
-                    elif('clarin.com' in urlOriginal):
-                        soup = getHtml(req)
-                        posts[i].append(getFechaClarin(soup))
-                        posts[i].append(getTemaClarin(soup))
-                        posts[i].append(getVolantaClarin(soup))
-                        posts[i].append(getTituloDiario(soup))
-                        posts[i].append(getBajadaDiarioClarin(soup))
-                        posts[i].append(getTextoDiarioClarin(soup))
-                    else:
-                        posts[i].append("OTRO MEDIO")
-                        posts[i].append("OTRO MEDIO")
-                        posts[i].append("OTRO MEDIO")
-                        posts[i].append("OTRO MEDIO")
-                        posts[i].append("OTRO MEDIO")
-                        posts[i].append("OTRO MEDIO")
+                if ('lanacion.com' in link.linkReal):
+                    postPortal = NacionPost(link)
+                    posts[i].append(postPortal.getFecha())
+                    posts[i].append(postPortal.getTema())
+                    posts[i].append(postPortal.getVolanta())
+                    posts[i].append(postPortal.getTitulo())
+                    posts[i].append(postPortal.getBajada())
+                    posts[i].append(postPortal.getTextoDiario())
+                elif('clarin.com' in link.linkReal):
+                    postPortal = ClarinPost(link)
+                    posts[i].append(postPortal.getFecha())
+                    posts[i].append(postPortal.getTema())
+                    posts[i].append(postPortal.getVolanta())
+                    posts[i].append(postPortal.getTitulo())
+                    posts[i].append(postPortal.getBajada())
+                    posts[i].append(postPortal.getTextoDiario())
                 else:
-                    posts[i].append("URL NULL")
-                    posts[i].append("URL NULL")
-                    posts[i].append("URL NULL")
-                    posts[i].append("URL NULL")
-                    posts[i].append("URL NULL")
-                    posts[i].append("URL NULL")
-                    posts[i].append("URL NULL")
+                    posts[i].append("OTRO MEDIO")
+                    posts[i].append("OTRO MEDIO")
+                    posts[i].append("OTRO MEDIO")
+                    posts[i].append("OTRO MEDIO")
+                    posts[i].append("OTRO MEDIO")
+                    posts[i].append("OTRO MEDIO")
             else:
                 posts[i].append("LINK NULL")
                 posts[i].append("LINK NULL")
@@ -370,8 +380,8 @@ def armarRutaDatos(nombreArchivo):
     return rutaADatos
 
 
-nombreArchivoEntrada = armarRutaDatos('post_output_restantes.csv')
-nombreArchivoSalida = armarRutaDatos('post_output.csv')
+nombreArchivoEntrada = armarRutaDatos('post_input_1000_5000.csv')
+nombreArchivoSalida = armarRutaDatos('post_output_1000_5000.csv')
 posts = loadCsvIntoDataSet(nombreArchivoEntrada).tolist()
 
 inicio = 0
