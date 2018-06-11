@@ -313,53 +313,65 @@ class ClarinPost(object):
         return texto
 
 
-def buscarInformacionPortales(posts, inicio, fin):
-    for i in range(inicio, fin):
-        try:
-            print(i)
-            link_url = posts[i][3]
-            link = Link(link_url)
-            if not link.esLinkAOmitir():
-                posts[i][4] = link.linkDomain
-                posts[i].append(link.linkReal)
+def buscarInformacionPortales(posts, inicio, fin, tamañoLote):
+    # calcular la cantidad de lotes
+    cantidadAProcesar = fin - inicio
+    cantidadLotes = cantidadAProcesar // tamañoLote
 
-                if ('lanacion.com' in link.linkReal):
-                    postPortal = NacionPost(link)
-                    posts[i].append(postPortal.getFecha())
-                    posts[i].append(postPortal.getTema())
-                    posts[i].append(postPortal.getVolanta())
-                    posts[i].append(postPortal.getTitulo())
-                    posts[i].append(postPortal.getBajada())
-                    posts[i].append(postPortal.getTextoDiario())
-                elif('clarin.com' in link.linkReal):
-                    postPortal = ClarinPost(link)
-                    posts[i].append(postPortal.getFecha())
-                    posts[i].append(postPortal.getTema())
-                    posts[i].append(postPortal.getVolanta())
-                    posts[i].append(postPortal.getTitulo())
-                    posts[i].append(postPortal.getBajada())
-                    posts[i].append(postPortal.getTextoDiario())
+    for l in range(0, cantidadLotes):
+        inicioLote = inicio + l * tamañoLote
+        finLote = inicioLote + tamañoLote
+        nombreArchivoSalidaLote = "post_ouput_lote_" + str(l) + "_" + str(inicioLote) + "_" + str(finLote) + ".csv"
+        nombreArchivoSalidaLote = armarRutaDatos(nombreArchivoSalidaLote)
+
+        for i in range(inicioLote, finLote):
+            try:
+                print(i)
+                link_url = posts[i][3]
+                link = Link(link_url)
+                if not link.esLinkAOmitir():
+                    posts[i][4] = link.linkDomain
+                    posts[i].append(link.linkReal)
+
+                    if ('lanacion.com' in link.linkReal):
+                        postPortal = NacionPost(link)
+                        posts[i].append(postPortal.getFecha())
+                        posts[i].append(postPortal.getTema())
+                        posts[i].append(postPortal.getVolanta())
+                        posts[i].append(postPortal.getTitulo())
+                        posts[i].append(postPortal.getBajada())
+                        posts[i].append(postPortal.getTextoDiario())
+                    elif('clarin.com' in link.linkReal):
+                        postPortal = ClarinPost(link)
+                        posts[i].append(postPortal.getFecha())
+                        posts[i].append(postPortal.getTema())
+                        posts[i].append(postPortal.getVolanta())
+                        posts[i].append(postPortal.getTitulo())
+                        posts[i].append(postPortal.getBajada())
+                        posts[i].append(postPortal.getTextoDiario())
+                    else:
+                        posts[i].append("OTRO MEDIO")
+                        posts[i].append("OTRO MEDIO")
+                        posts[i].append("OTRO MEDIO")
+                        posts[i].append("OTRO MEDIO")
+                        posts[i].append("OTRO MEDIO")
+                        posts[i].append("OTRO MEDIO")
                 else:
-                    posts[i].append("OTRO MEDIO")
-                    posts[i].append("OTRO MEDIO")
-                    posts[i].append("OTRO MEDIO")
-                    posts[i].append("OTRO MEDIO")
-                    posts[i].append("OTRO MEDIO")
-                    posts[i].append("OTRO MEDIO")
-            else:
-                posts[i].append("LINK NULL")
-                posts[i].append("LINK NULL")
-                posts[i].append("LINK NULL")
-                posts[i].append("LINK NULL")
-                posts[i].append("LINK NULL")
-                posts[i].append("LINK NULL")
-                posts[i].append("LINK NULL")
-        except Exception as ex:
-            columnas = len(posts[i]) + 1
-            for _ in range(columnas, 14):
-                posts[i].append("TIME OUT")
-            print("TIME OUT")
-            print(ex)
+                    posts[i].append("LINK NULL")
+                    posts[i].append("LINK NULL")
+                    posts[i].append("LINK NULL")
+                    posts[i].append("LINK NULL")
+                    posts[i].append("LINK NULL")
+                    posts[i].append("LINK NULL")
+                    posts[i].append("LINK NULL")
+            except Exception as ex:
+                columnas = len(posts[i]) + 1
+                for _ in range(columnas, 14):
+                    posts[i].append("TIME OUT")
+                print("TIME OUT")
+                print(ex)
+
+        guardarEnCSV(posts, nombreArchivoSalidaLote)
 
     return posts
 
@@ -370,7 +382,7 @@ def loadCsvIntoDataSet(nombreArchivoEntrada):
 
 
 def guardarEnCSV(postsFinal, nombreArchivoSalida):
-    columns = ['tipo_post', 'post_id', 'post_link', 'link', 'link_domain', 'post_message', 'UrlCompleta', 'fecha_hora_diario', 'tema', 'volanta', 'titulo_diario', 'bajada', 'texto_diario', 'a']
+    columns = ['tipo_post', 'post_id', 'post_link', 'link', 'link_domain', 'post_message', 'UrlCompleta', 'fecha_hora_diario', 'tema', 'volanta', 'titulo_diario', 'bajada', 'texto_diario']
     df = pd.DataFrame(data=postsFinal, columns=columns)
     df.to_csv(nombreArchivoSalida, index=False, columns=columns, sep=';', quoting=csv.QUOTE_ALL, doublequote=True, quotechar='"', encoding="utf-8")
 
@@ -381,11 +393,9 @@ def armarRutaDatos(nombreArchivo):
 
 
 nombreArchivoEntrada = armarRutaDatos('post_input_1000_5000.csv')
-nombreArchivoSalida = armarRutaDatos('post_output_1000_5000.csv')
 posts = loadCsvIntoDataSet(nombreArchivoEntrada).tolist()
 
-inicio = 0
+inicio = 100
 fin = len(posts)
-
-postsConTitulo = buscarInformacionPortales(posts, inicio, fin)
-guardarEnCSV(postsConTitulo, nombreArchivoSalida)
+tamañoLote = 10
+postsConTitulo = buscarInformacionPortales(posts, inicio, fin, tamañoLote)
