@@ -15,32 +15,34 @@
 #    along with buscarEnPortalesDiarios; if not, write to the Free Software
 #    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-# from Link import Link
 
-
-class ClarinPost(object):
+class ClarinPosteo(object):
     def __init__(self, link):
-        self.soup = link.getHtmlSoup()
+        '''Inicia un posteo de Clarin, el parametro link debe ser una instancia de la clase Link'''
+        self.HtmlParseado = link.obtenerHtmlParseada()
 
     def getTitulo(self):
-        result = "TITULO NO ENCONTRADO"
-        if self.soup is None:
-            return result
+        resultado = "TITULO NO ENCONTRADO"
+        if self.HtmlParseado is None:
+            return resultado
 
+        for etiqueta in self.HtmlParseado.find_all("meta"):
+            if etiqueta.get("property", None) == "og:title":
+                return etiqueta.get("content", None)
         try:
-            if self.soup.h1 is not None:
-                result = self.soup.h1.getText()
+            if self.HtmlParseado.h1 is not None:
+                resultado = self.HtmlParseado.h1.getText()
         except Exception as ex:
             print("ERROR" + str(ex))
-        return result
+        return resultado
 
     def getTextoDiario(self):
         texto = "TEXTO DIARIO NO ENCONTRADO"
-        if self.soup is None:
+        if self.HtmlParseado is None:
             return texto
 
         try:
-            cuerpo = self.soup.find(class_='body-nota')
+            cuerpo = self.HtmlParseado.find(class_='body-nota')
             # porque class es una palabra reservada
             if cuerpo is not None:
                 parrafos = cuerpo.find_all('p')
@@ -53,19 +55,32 @@ class ClarinPost(object):
         return texto
 
     def getFecha(self):
-        for tag in self.soup.find_all("meta"):
-            if tag.get("itemprop", None) == "datePublished":
-                return tag.get("content", None)
-        return "FECHA NO ENCONTRADA"
+        
+        resultado = "FECHA NO ENCONTRADA"
+        if self.HtmlParseado is None:
+            return resultado
+
+        for etiqueta in self.HtmlParseado.find_all("meta"):
+            if etiqueta.get("itemprop", None) == "datePublished":
+                return etiqueta.get("content", None)
+            if etiqueta.get("name", None) == "cXenseParse:recs:publishtime":
+                fechaCompleta = etiqueta.get("content", None)
+                fechaCompleta = fechaCompleta.replace('T', ' ')[:19]
+                return fechaCompleta
+        return resultado
 
     def getTema(self):
         texto = "TEMA  NO ENCONTRADO"
-        if self.soup is None:
+        if self.HtmlParseado is None:
             return texto
+
+        for etiqueta in self.HtmlParseado.find_all("meta"):
+            if etiqueta.get("name", None) == "cXenseParse:gca-categories":
+                return etiqueta.get("content", None)
 
         try:
             # Clarín
-            tema = self.soup.find(class_='header-section-name')
+            tema = self.HtmlParseado.find(class_='header-section-name')
             texto = ""
             if tema is not None:
                 texto = tema.getText()
@@ -76,11 +91,15 @@ class ClarinPost(object):
 
     def getVolanta(self):
         texto = "VOLANTA NO ENCONTRADA"
-        if self.soup is None:
+        if self.HtmlParseado is None:
             return texto
 
+        for etiqueta in self.HtmlParseado.find_all("meta"):
+            if etiqueta.get("name", None) == "cXenseParse:recs:volanta":
+                return etiqueta.get("content", None)
+
         try:
-            volanta = self.soup.find(class_='volanta')
+            volanta = self.HtmlParseado.find(class_='volanta')
             texto = ""
             if volanta is not None:
                 texto = volanta.getText()
@@ -91,11 +110,15 @@ class ClarinPost(object):
 
     def getBajada(self):
         texto = "BAJADA NO ENCONTRADA"
-        if self.soup is None:
+        if self.HtmlParseado is None:
             return texto
 
+        for etiqueta in self.HtmlParseado.find_all("meta"):
+            if etiqueta.get("property", None) == "og:description":
+                return etiqueta.get("content", None)
+
         try:
-            bajada = self.soup.find(class_='bajada')
+            bajada = self.HtmlParseado.find(class_='bajada')
             if bajada is not None:
                 parrafos = bajada.find_all('p')
                 texto = ""

@@ -19,6 +19,7 @@
 import urllib.request
 import bs4
 import pandas as pd
+import tldextract
 import urllib.parse
 
 
@@ -49,17 +50,17 @@ class Link(object):
         }
 
         self.linkOriginal = linkURL
+        if linkURL is not None:
+            for viejo in self.linkMovidos:
+                if(viejo in self.linkOriginal):
+                    self.linkOriginal = self.linkOriginal.replace(viejo, self.linkMovidos[viejo])
 
-        for viejo in self.linkMovidos:
-            if(viejo in self.linkOriginal):
-                self.linkOriginal = self.linkOriginal.replace(viejo, self.linkMovidos[viejo])
-
-        self.req = urllib.request.Request(self.linkOriginal)
-        self.linkReal = self.alargar_url(self.req)
-        self.linkDomain = self.getLinkDomain()
+            self.req = urllib.request.Request(self.linkOriginal)
+            self.linkReal = self._alargar_url(self.req)
+            self.linkDominio = self.ObtenerDominioLink()
 
     def esLinkAOmitir(self):
-        '''Determina si el link puede ser procesado o no'''
+        '''Determina si el link a un portal puede ser procesado o no'''
         if pd.isnull(self.linkOriginal):
             return False
 
@@ -72,23 +73,25 @@ class Link(object):
 
         return False
 
-    def getLinkDomain(self):
+    def ObtenerDominioLink(self):
         '''Devuelve el dominio del link'''
-        parsed_uri = urllib.parse.urlparse(self.linkReal)
-        return '{uri.netloc}'.format(uri=parsed_uri)
+        url_parseada = tldextract.extract(self.linkOriginal)
+        return "{}.{}".format(url_parseada.domain, url_parseada.suffix)
 
-    def alargar_url(self, req):
+    def _alargar_url(self, req):
+        '''Obtiene la version larga de un link'''
         try:
-            resolvedURL = urllib.request.urlopen(req)
-            return resolvedURL.url
+            url_resuelta = urllib.request.urlopen(req)
+            return url_resuelta.url
         except Exception as ex:
             print("ERROR" + str(ex))
         return None
 
-    def getHtmlSoup(self):
+    def obtenerHtmlParseada(self):
+        '''Obtiene la pagina parseada por beautifulSoup'''
         try:
-            resp = urllib.request.urlopen(self.req)
-            html = resp.read()
+            respuesta = urllib.request.urlopen(self.req)
+            html = respuesta.read()
             soup = bs4.BeautifulSoup(html, 'html.parser')
             return soup
         except Exception as ex:

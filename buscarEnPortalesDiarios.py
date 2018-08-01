@@ -16,66 +16,65 @@
 #    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 from pyfbutils.Link import Link
-from pyfbutils.ClarinPost import ClarinPost
-from pyfbutils.NacionPost import NacionPost
+from pyfbutils.ClarinPosteo import ClarinPosteo
+from pyfbutils.NacionPosteo import NacionPosteo
 from pyfbutils.DataSetCSV import DataSetCSV
 
 
 def buscarInformacionPortales(datasetCSV):
-    posts = datasetCSV.dataset
+    posteos = datasetCSV.dataset
 
     for i in range(datasetCSV.inicio, datasetCSV.fin):
         try:
             print(i)
-            link_url = posts[i][3]
+            link_url = posteos[i][1]
             link = Link(link_url)
             if not link.esLinkAOmitir():
-                posts[i][4] = link.linkDomain
-                posts[i].append(link.linkReal)
+                posteos[i].append(link.linkReal)
 
                 if ('lanacion.com' in link.linkReal):
-                    postPortal = NacionPost(link)
-                    posts[i].append(postPortal.getFecha())
-                    posts[i].append(postPortal.getTema())
-                    posts[i].append(postPortal.getVolanta())
-                    posts[i].append(postPortal.getTitulo())
-                    posts[i].append(postPortal.getBajada())
-                    posts[i].append(postPortal.getTextoDiario())
+                    postPortal = NacionPosteo(link)
+                    posteos[i].append(postPortal.getFecha())
+                    posteos[i].append(postPortal.getTema())
+                    posteos[i].append(postPortal.getVolanta())
+                    posteos[i].append(postPortal.getTitulo())
+                    posteos[i].append(postPortal.getBajada())
+                    posteos[i].append(postPortal.getTextoDiario())
                 elif('clarin.com' in link.linkReal):
-                    postPortal = ClarinPost(link)
-                    posts[i].append(postPortal.getFecha())
-                    posts[i].append(postPortal.getTema())
-                    posts[i].append(postPortal.getVolanta())
-                    posts[i].append(postPortal.getTitulo())
-                    posts[i].append(postPortal.getBajada())
-                    posts[i].append(postPortal.getTextoDiario())
+                    postPortal = ClarinPosteo(link)
+                    posteos[i].append(postPortal.getFecha())
+                    posteos[i].append(postPortal.getTema())
+                    posteos[i].append(postPortal.getVolanta())
+                    posteos[i].append(postPortal.getTitulo())
+                    posteos[i].append(postPortal.getBajada())
+                    posteos[i].append(postPortal.getTextoDiario())
                 else:
-                    posts[i].append("OTRO MEDIO")
-                    posts[i].append("OTRO MEDIO")
-                    posts[i].append("OTRO MEDIO")
-                    posts[i].append("OTRO MEDIO")
-                    posts[i].append("OTRO MEDIO")
-                    posts[i].append("OTRO MEDIO")
+                    posteos[i].append("OTRO MEDIO")
+                    posteos[i].append("OTRO MEDIO")
+                    posteos[i].append("OTRO MEDIO")
+                    posteos[i].append("OTRO MEDIO")
+                    posteos[i].append("OTRO MEDIO")
+                    posteos[i].append("OTRO MEDIO")
             else:
-                posts[i].append("LINK NULL")
-                posts[i].append("LINK NULL")
-                posts[i].append("LINK NULL")
-                posts[i].append("LINK NULL")
-                posts[i].append("LINK NULL")
-                posts[i].append("LINK NULL")
-                posts[i].append("LINK NULL")
+                posteos[i].append("LINK NULL")
+                posteos[i].append("LINK NULL")
+                posteos[i].append("LINK NULL")
+                posteos[i].append("LINK NULL")
+                posteos[i].append("LINK NULL")
+                posteos[i].append("LINK NULL")
+                posteos[i].append("LINK NULL")
         except Exception as ex:
-            columnas = len(posts[i]) + 1
+            columnas = len(posteos[i]) + 1
             for _ in range(columnas, datasetCSV.cantidadColumnas):
-                posts[i].append("TIME OUT")
+                posteos[i].append("TIME OUT")
             print("TIME OUT")
             print(ex)
 
 
 # programaPrincipal
-nombreArchivoEntrada = 'post_input_1000_5000.csv'
+nombreArchivoEntrada = 'post_input.csv'
 nombreArchivoSalida = 'post_output.csv'
-columnas = ['tipo_post', 'post_id', 'post_link', 'link', 'link_domain', 'post_message', 'UrlCompleta', 'fecha_hora_diario', 'tema', 'volanta', 'titulo_diario', 'bajada', 'texto_diario']
+columnas = ['post_id', 'link', 'UrlCompleta', 'fecha_hora_diario', 'tema', 'volanta', 'titulo_diario', 'bajada', 'texto_diario']
 
 inicio = 0
 fin = None

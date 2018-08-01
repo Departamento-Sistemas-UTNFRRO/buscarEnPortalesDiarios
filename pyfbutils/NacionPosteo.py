@@ -17,23 +17,23 @@
 
 from datetime import datetime
 import locale
-# from Link import Link
 
 
-class NacionPost(object):
+class NacionPosteo(object):
     def __init__(self, link):
-        self.soup = link.getHtmlSoup()
+        '''Inicia un posteo de Clarin, el parametro link debe ser una instancia de la clase Link'''
+        self.HtmlParseado = link.obtenerHtmlParseada()
 
     def getFecha(self):
         fechaNacion = "FECHA NO ENCONTRADA"
-        if self.soup is None:
+        if self.HtmlParseado is None:
             return fechaNacion
 
         try:
-            for tag in self.soup.find_all("meta"):
-                if tag.get("itemprop", None) == "datePublished":
-                        return tag.get("content", None)
-            contenedor = self.soup.find(class_='fecha')
+            for etiqueta in self.HtmlParseado.find_all("meta"):
+                if etiqueta.get("itemprop", None) == "datePublished":
+                        return etiqueta.get("content", None)
+            contenedor = self.HtmlParseado.find(class_='fecha')
             if contenedor is not None:
                 fechaCompleta = contenedor.getText()
                 fechaCompleta = fechaCompleta.replace('\xa0', '')
@@ -55,75 +55,75 @@ class NacionPost(object):
         return fechaNacion
 
     def getTema(self):
-        result = "TEMA NO ENCONTRADO"
-        if self.soup is None:
-            return result
+        resultado = "TEMA NO ENCONTRADO"
+        if self.HtmlParseado is None:
+            return resultado
 
         try:
-            contenedor = self.soup.find(class_='temas')
+            contenedor = self.HtmlParseado.find(class_='temas')
             if contenedor is not None:
                 elementosContenedor = contenedor.find_all("a")
                 if elementosContenedor is not None:
                     return elementosContenedor[0].getText()
 
-            contenedor = self.soup.find(class_='path floatFix breadcrumb')
+            contenedor = self.HtmlParseado.find(class_='path floatFix breadcrumb')
             if contenedor is None:
-                contenedor = self.soup.find(class_='path patrocinado floatFix breadcrumb')
+                contenedor = self.HtmlParseado.find(class_='path patrocinado floatFix breadcrumb')
             if contenedor is not None:
                 elementosContenedor = contenedor.find_all("span")
                 if elementosContenedor is not None:
-                    tag = elementosContenedor[1]
-                    if tag.get("itemprop", None) == "name":
-                        return tag.getText()
+                    etiqueta = elementosContenedor[1]
+                    if etiqueta.get("itemprop", None) == "name":
+                        return etiqueta.getText()
         except Exception as ex:
             print("ERROR" + str(ex))
-        return result
+        return resultado
 
     def getVolanta(self):
-        result = "VOLANTA NO ENCONTRADA"
-        if self.soup is None:
-            return result
+        resultado = "VOLANTA NO ENCONTRADA"
+        if self.HtmlParseado is None:
+            return resultado
 
         try:
-            contenedor = self.soup.find(class_='temas')
+            contenedor = self.HtmlParseado.find(class_='temas')
             if contenedor is not None:
                 elementosContenedor = contenedor.find_all("a")
                 if elementosContenedor is not None and len(elementosContenedor) > 1:
                     return elementosContenedor[1].getText()
 
-            contenedor = self.soup.find(class_='path floatFix breadcrumb')
+            contenedor = self.HtmlParseado.find(class_='path floatFix breadcrumb')
             if contenedor is None:
-                contenedor = self.soup.find(class_='path patrocinado floatFix breadcrumb')
+                contenedor = self.HtmlParseado.find(class_='path patrocinado floatFix breadcrumb')
             if contenedor is None:
-                contenedor = self.soup.find(class_='path tema-espacio-hsbc floatFix breadcrumb')
+                contenedor = self.HtmlParseado.find(class_='path tema-espacio-hsbc floatFix breadcrumb')
             if contenedor is not None:
                 elementosContenedor = contenedor.find_all("span")
                 if elementosContenedor is not None and len(elementosContenedor) > 2:
-                    tag = elementosContenedor[2]
-                    if tag.get("itemprop", None) == "name":
-                        return tag.getText()
+                    etiqueta = elementosContenedor[2]
+                    if etiqueta.get("itemprop", None) == "name":
+                        return etiqueta.getText()
         except Exception as ex:
             print("ERROR" + str(ex))
-        return result
+        return resultado
 
     def getTitulo(self):
-        result = "TITULO NO ENCONTRADO"
-        if self.soup is None:
-            return result
+        resultado = "TITULO NO ENCONTRADO"
+        if self.HtmlParseado is None:
+            return resultado
 
         try:
-            if self.soup.h1 is not None:
-                result = self.soup.h1.getText()
+            if self.HtmlParseado.h1 is not None:
+                resultado = self.HtmlParseado.h1.getText()
         except Exception as ex:
             print("ERROR" + str(ex))
-        return result
+        return resultado
 
     def getBajada(self):
         texto = "BAJADA NO ENCONTRADA"
-        if self.soup is None:
+        if self.HtmlParseado is None:
             return texto
         try:
-            bajada = self.soup.find(class_="bajada")
+            bajada = self.HtmlParseado.find(class_="bajada")
             # porque class es una palabra reservada
             if bajada is not None:
                 texto = bajada.getText()
@@ -134,11 +134,11 @@ class NacionPost(object):
 
     def getTextoDiario(self):
         texto = "TEXTO DIARIO NO ENCONTRADO"
-        if self.soup is None:
+        if self.HtmlParseado is None:
             return texto
 
         try:
-            cuerpo = self.soup.find(id='cuerpo')
+            cuerpo = self.HtmlParseado.find(id='cuerpo')
             if cuerpo is not None:
                 parrafos = cuerpo.find_all('p')
                 texto = ""

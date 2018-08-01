@@ -45,4 +45,4 @@ class DataSetCSV(object):
 
     def guardar(self):
         df = pd.DataFrame(data=self.dataset, columns=self.columnas)
-        df.to_csv(self.nombreArchivoSalida, index=False, columns=self.columnas, sep=';', quoting=csv.QUOTE_ALL, doublequote=True, quotechar='"', encoding="utf-16")    
+        df.to_csv(self.nombreArchivoSalida, index=False, columns=self.columnas, sep=';', quoting=csv.QUOTE_ALL, doublequote=True, quotechar='"', encoding="utf-8")    
