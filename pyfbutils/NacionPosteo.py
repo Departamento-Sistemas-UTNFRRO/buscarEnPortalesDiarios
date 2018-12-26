@@ -60,11 +60,11 @@ class NacionPosteo(object):
             return resultado
 
         try:
-            contenedor = self.HtmlParseado.find(class_='temas')
+            contenedor = self.HtmlParseado.find("div", class_='temas')
             if contenedor is not None:
                 elementosContenedor = contenedor.find_all("a")
                 if elementosContenedor is not None:
-                    return elementosContenedor[0].getText()
+                    return elementosContenedor[0].getText().replace("\r\n", "").strip()
 
             contenedor = self.HtmlParseado.find(class_='path floatFix breadcrumb')
             if contenedor is None:
@@ -85,11 +85,11 @@ class NacionPosteo(object):
             return resultado
 
         try:
-            contenedor = self.HtmlParseado.find(class_='temas')
+            contenedor = self.HtmlParseado.find("div", class_='temas')
             if contenedor is not None:
                 elementosContenedor = contenedor.find_all("a")
                 if elementosContenedor is not None and len(elementosContenedor) > 1:
-                    return elementosContenedor[1].getText()
+                    return elementosContenedor[1].getText().replace("\r\n", "").strip()
 
             contenedor = self.HtmlParseado.find(class_='path floatFix breadcrumb')
             if contenedor is None:
@@ -126,7 +126,7 @@ class NacionPosteo(object):
             bajada = self.HtmlParseado.find(class_="bajada")
             # porque class es una palabra reservada
             if bajada is not None:
-                texto = bajada.getText()
+                texto = bajada.getText().replace("\r\n", "").strip()
         except Exception as ex:
             print("ERROR" + str(ex))
             print(texto)
