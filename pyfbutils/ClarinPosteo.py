@@ -55,7 +55,6 @@ class ClarinPosteo(object):
         return texto
 
     def getFecha(self):
-        
         resultado = "FECHA NO ENCONTRADA"
         if self.HtmlParseado is None:
             return resultado

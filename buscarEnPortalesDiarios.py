@@ -19,6 +19,7 @@ from pyfbutils.Link import Link
 from pyfbutils.ClarinPosteo import ClarinPosteo
 from pyfbutils.NacionPosteo import NacionPosteo
 from pyfbutils.DataSetCSV import DataSetCSV
+import ConfigManager
 
 
 def buscarInformacionPortales(datasetCSV):
@@ -71,14 +72,12 @@ def buscarInformacionPortales(datasetCSV):
             print(ex)
 
 
+config = ConfigManager.ConfigManager()
+
 # programaPrincipal
-nombreArchivoEntrada = 'post_input.csv'
-nombreArchivoSalida = 'post_output.csv'
 columnas = ['post_id', 'link', 'UrlCompleta', 'fecha_hora_diario', 'tema', 'volanta', 'titulo_diario', 'bajada', 'texto_diario']
 
-inicio = 0
-fin = None
-
-datasetCSV = DataSetCSV(nombreArchivoEntrada, nombreArchivoSalida, columnas, inicio, fin)
+datasetCSV = DataSetCSV(config.input_filename, config.output_filename,
+                        columnas, config.input_init, config.input_end)
 buscarInformacionPortales(datasetCSV)
 datasetCSV.guardar()

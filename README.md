@@ -16,5 +16,18 @@ Se genera un archivo csv (post_output) en la carpeta data con las siguientes col
 8-bajada
 9-texto_diario
 
-Para ejecutar el script se necesita python3 con la libreria beautifulsoup. Una vez posicionado sobre el directorio del proyecto ejecutar:
+## Dependencias
+Para utilizar el script es necesario instalar las siguientes librerias python:
+- BeautifulSoup4
+- Pandas
+
+La instalacion puede hacerse utilizando pip de la siguiente manera:
+- \$ su
+- \# pip3 install pandas
+- \# pip3 install bs4
+- \# pip3 install lxml
+- \# pip3 install tldextract
+
+
+Para ejecutar el script una vez posicionado sobre el directorio del proyecto ejecutar:
 $ python3 buscarEnPortalesDiarios.py

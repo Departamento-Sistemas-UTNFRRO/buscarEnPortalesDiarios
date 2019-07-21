@@ -19,8 +19,8 @@
 import urllib.request
 import bs4
 import pandas as pd
-import tldextract
 import urllib.parse
+import tldextract
 
 
 class Link(object):
@@ -43,7 +43,6 @@ class Link(object):
             'http://personajes.lanacion': 'http://www.lanacion',
             'https://www.ieco.clarin.com/ieco/economia': 'https://www.clarin.com/economia',
             'a.ln.com.ar': 'www.lanacion.com.ar',
-#            'clar.in': 'www.clarin.com',
             'mundial-brasil-2014.clarin.com': 'www.clarin.com',
             'arq.clarin.com': 'www.clarin.com',
             'deporteshd.clarin.com': 'www.clarin.com'
@@ -53,7 +52,8 @@ class Link(object):
         if linkURL is not None:
             for viejo in self.linkMovidos:
                 if(viejo in self.linkOriginal):
-                    self.linkOriginal = self.linkOriginal.replace(viejo, self.linkMovidos[viejo])
+                    self.linkOriginal = self.linkOriginal.replace(
+                        viejo, self.linkMovidos[viejo])
 
             self.req = urllib.request.Request(self.linkOriginal)
             self.linkReal = self._alargar_url(self.req)

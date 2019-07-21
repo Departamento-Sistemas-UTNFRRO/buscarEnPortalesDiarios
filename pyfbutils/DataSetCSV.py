@@ -17,14 +17,13 @@
 #    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 import pandas as pd
-import os
 import csv
 
 
 class DataSetCSV(object):
     def __init__(self, nombreArchivoEntrada, nombreArchivoSalida, columnas, inicio=None, fin=None):
-        self.nombreArchivoEntrada = self._armarRutaDatos(nombreArchivoEntrada)
-        self.nombreArchivoSalida = self._armarRutaDatos(nombreArchivoSalida)
+        self.nombreArchivoEntrada = nombreArchivoEntrada
+        self.nombreArchivoSalida = nombreArchivoSalida
         self.columnas = columnas
         self.cantidadColumnas = len(columnas)
         self.dataset = self._obtenerDataSet()
@@ -34,10 +33,6 @@ class DataSetCSV(object):
         self.fin = fin
         if fin is None:
             self.fin = len(self.dataset)
-
-    def _armarRutaDatos(self, nombreArchivo):
-        rutaADatos = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', nombreArchivo)
-        return rutaADatos
 
     def _obtenerDataSet(self):
         csv = pd.read_csv(self.nombreArchivoEntrada, header=0, sep=',', quotechar='\"', encoding="utf-8")
