@@ -18,6 +18,7 @@
 from pyfbutils.Link import Link
 from pyfbutils.ClarinPosteo import ClarinPosteo
 from pyfbutils.NacionPosteo import NacionPosteo
+from pyfbutils.Pagina12 import Pagina12Posteo
 from pyfbutils.DataSetCSV import DataSetCSV
 import ConfigManager
 
@@ -43,6 +44,14 @@ def buscarInformacionPortales(datasetCSV):
                     posteos[i].append(postPortal.getTextoDiario())
                 elif('clarin.com' in link.linkReal):
                     postPortal = ClarinPosteo(link)
+                    posteos[i].append(postPortal.getFecha())
+                    posteos[i].append(postPortal.getTema())
+                    posteos[i].append(postPortal.getVolanta())
+                    posteos[i].append(postPortal.getTitulo())
+                    posteos[i].append(postPortal.getBajada())
+                    posteos[i].append(postPortal.getTextoDiario())
+                elif('pagina12.com.ar' in link.linkReal):
+                    postPortal = Pagina12Posteo(link)
                     posteos[i].append(postPortal.getFecha())
                     posteos[i].append(postPortal.getTema())
                     posteos[i].append(postPortal.getVolanta())

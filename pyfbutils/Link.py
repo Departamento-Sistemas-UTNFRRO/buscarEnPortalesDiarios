@@ -55,7 +55,7 @@ class Link(object):
                     self.linkOriginal = self.linkOriginal.replace(
                         viejo, self.linkMovidos[viejo])
 
-            self.req = urllib.request.Request(self.linkOriginal)
+            self.req = urllib.request.Request(self.linkOriginal, headers={'User-Agent': 'Mozilla/5.0'})
             self.linkReal = self._alargar_url(self.req)
             self.linkDominio = self.ObtenerDominioLink()
 

@@ -15,8 +15,11 @@
 #    along with buscarEnPortalesDiarios; if not, write to the Free Software
 #    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
+from datetime import datetime
+import locale
 
-class ClarinPosteo(object):
+
+class Pagina12Posteo(object):
     def __init__(self, link):
         '''Inicia un posteo de Clarin, el parametro link debe ser una instancia de la clase Link'''
         self.HtmlParseado = link.obtenerHtmlParseada()
@@ -26,9 +29,8 @@ class ClarinPosteo(object):
         if self.HtmlParseado is None:
             return resultado
 
-        for etiqueta in self.HtmlParseado.find_all("meta"):
-            if etiqueta.get("property", None) == "og:title":
-                return etiqueta.get("content", None)
+        for etiqueta in self.HtmlParseado.find_all("h2"):
+            return etiqueta.getText()
         return resultado
 
     def getTextoDiario(self):
@@ -37,7 +39,7 @@ class ClarinPosteo(object):
             return texto
 
         try:
-            cuerpo = self.HtmlParseado.find(class_='body-nota')
+            cuerpo = self.HtmlParseado.find(id='cuerpo')
             # porque class es una palabra reservada
             if cuerpo is not None:
                 parrafos = cuerpo.find_all('p')
@@ -54,13 +56,19 @@ class ClarinPosteo(object):
         if self.HtmlParseado is None:
             return resultado
 
-        for etiqueta in self.HtmlParseado.find_all("meta"):
-            if etiqueta.get("itemprop", None) == "datePublished":
-                return etiqueta.get("content", None)
-            if etiqueta.get("name", None) == "DC.date.issued":
-                fechaCompleta = etiqueta.get("content", None)
-                fechaCompleta = fechaCompleta.replace('T', ' ')[:19]
-                return fechaCompleta
+        contenedor = self.HtmlParseado.find(class_='fecha_edicion')
+        if contenedor is not None:
+            fechaCompleta = contenedor.getText()
+            fechaCompleta = fechaCompleta.replace('\xa0', '')
+            fechaCompleta = fechaCompleta.replace('de', '')
+            fechaCompleta = fechaCompleta.replace('•', '')
+            fechaCompleta = fechaCompleta.replace('  ', ' ')
+            fechaCompleta = fechaCompleta.replace('  ', ' ')
+            fechaCompleta = fechaCompleta.strip()
+            locale.setlocale(locale.LC_TIME, 'es_AR')
+            fechaCompleta = datetime.strptime(
+            fechaCompleta, '%A, %d %B %Y')
+            resultado = fechaCompleta.strftime('%d/%m/%Y %H:%M:%S')
         return resultado
 
     def getTema(self):
@@ -68,9 +76,16 @@ class ClarinPosteo(object):
         if self.HtmlParseado is None:
             return texto
 
-        for etiqueta in self.HtmlParseado.find_all("meta"):
-            if etiqueta.get("property", None) == "article:section":
-                return etiqueta.get("content", None)
+        volanta = self.HtmlParseado.find(class_='volanta')
+        if volanta is not None:
+            for etiqueta in volanta.find_all("a", {"class": "cprincipal"}):
+                return etiqueta.getText()
+            for etiqueta in volanta.find_all("span", {"class": "hora cultimas"}):
+                return "Ultimas Noticias"
+        
+        for etiqueta in self.HtmlParseado.find_all("div", {"class": "logosuple top12"}):
+            return "Las 12"
+
         return texto
 
     def getVolanta(self):
@@ -78,15 +93,19 @@ class ClarinPosteo(object):
         if self.HtmlParseado is None:
             return texto
 
-        for etiqueta in self.HtmlParseado.find_all("meta"):
-            if etiqueta.get("name", None) == "volanta":
-                return etiqueta.get("content", None)
-
         try:
             volanta = self.HtmlParseado.find(class_='volanta')
             texto = ""
             if volanta is not None:
                 texto = volanta.getText()
+                texto = texto.split("›", 1)
+                if len(texto) == 2:
+                    return texto[1]
+                else:
+                    texto = ""
+            volanta = self.HtmlParseado.find(class_='volantasuple')
+            if volanta:
+                return volanta.getText()
         except Exception as ex:
             print("ERROR" + str(ex))
             print(texto)
@@ -97,7 +116,12 @@ class ClarinPosteo(object):
         if self.HtmlParseado is None:
             return texto
 
-        for etiqueta in self.HtmlParseado.find_all("meta"):
-            if etiqueta.get("property", None) == "og:description":
-                return etiqueta.get("content", None)
+        try:
+            volanta = self.HtmlParseado.find(class_='fgprincipal')
+            texto = ""
+            if volanta is not None:
+                texto = volanta.getText()
+        except Exception as ex:
+            print("ERROR" + str(ex))
+            print(texto)
         return texto

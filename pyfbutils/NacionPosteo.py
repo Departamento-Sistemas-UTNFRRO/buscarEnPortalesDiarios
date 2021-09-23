@@ -31,25 +31,10 @@ class NacionPosteo(object):
 
         try:
             for etiqueta in self.HtmlParseado.find_all("meta"):
-                if etiqueta.get("itemprop", None) == "datePublished":
-                        return etiqueta.get("content", None)
-            contenedor = self.HtmlParseado.find(class_='fecha')
-            if contenedor is not None:
-                fechaCompleta = contenedor.getText()
-                fechaCompleta = fechaCompleta.replace('\xa0', '')
-                fechaCompleta = fechaCompleta.replace('de', '')
-                fechaCompleta = fechaCompleta.replace('•', '')
-                fechaCompleta = fechaCompleta.replace('  ', ' ')
-                fechaCompleta = fechaCompleta.replace('  ', ' ')
-                fechaCompleta = fechaCompleta.strip()
-                locale.setlocale(locale.LC_TIME, 'es_AR')
-                if '•' in contenedor.getText():
-                    fechaCompleta = datetime.strptime(
-                        fechaCompleta, '%d %B %Y %H:%M')
-                else:
-                    fechaCompleta = datetime.strptime(
-                        fechaCompleta, '%d %B %Y')
-                fechaNacion = fechaCompleta.strftime('%d/%m/%Y %H:%M:%S')
+                if etiqueta.get("property", None) == "article:published_time":
+                    fechaCompleta = etiqueta.get("content", None)
+                    fechaCompleta = fechaCompleta.replace('T', ' ')[:19]
+                    return fechaCompleta
         except Exception as ex:
             print("ERROR" + str(ex))
         return fechaNacion
@@ -59,28 +44,14 @@ class NacionPosteo(object):
         if self.HtmlParseado is None:
             return resultado
 
-        try:
-            contenedor = self.HtmlParseado.find("div", class_='temas')
-            if contenedor is not None:
-                elementosContenedor = contenedor.find_all("a")
-                if elementosContenedor is not None:
-                    return elementosContenedor[0].getText().replace("\r\n", "").strip()
+        for etiqueta in self.HtmlParseado.find_all("meta"):
+            if etiqueta.get("name", None) == "parsely-section":
+                return etiqueta.get("content", None)
 
-            contenedor = self.HtmlParseado.find(class_='path floatFix breadcrumb')
-            if contenedor is None:
-                contenedor = self.HtmlParseado.find(class_='path patrocinado floatFix breadcrumb')
-            if contenedor is not None:
-                elementosContenedor = contenedor.find_all("span")
-                if elementosContenedor is not None:
-                    etiqueta = elementosContenedor[1]
-                    if etiqueta.get("itemprop", None) == "name":
-                        return etiqueta.getText()
-        except Exception as ex:
-            print("ERROR" + str(ex))
         return resultado
 
     def getVolanta(self):
-        resultado = "VOLANTA NO ENCONTRADA"
+        resultado = ""
         if self.HtmlParseado is None:
             return resultado
 
@@ -111,25 +82,19 @@ class NacionPosteo(object):
         if self.HtmlParseado is None:
             return resultado
 
-        try:
-            if self.HtmlParseado.h1 is not None:
-                resultado = self.HtmlParseado.h1.getText()
-        except Exception as ex:
-            print("ERROR" + str(ex))
+        for etiqueta in self.HtmlParseado.find_all("meta"):
+            if etiqueta.get("property", None) == "og:title":
+                return etiqueta.get("content", None)
         return resultado
 
     def getBajada(self):
         texto = "BAJADA NO ENCONTRADA"
         if self.HtmlParseado is None:
             return texto
-        try:
-            bajada = self.HtmlParseado.find(class_="bajada")
-            # porque class es una palabra reservada
-            if bajada is not None:
-                texto = bajada.getText().replace("\r\n", "").strip()
-        except Exception as ex:
-            print("ERROR" + str(ex))
-            print(texto)
+
+        for etiqueta in self.HtmlParseado.find_all("meta"):
+            if etiqueta.get("property", None) == "og:description":
+                return etiqueta.get("content", None)
         return texto
 
     def getTextoDiario(self):
@@ -138,12 +103,10 @@ class NacionPosteo(object):
             return texto
 
         try:
-            cuerpo = self.HtmlParseado.find(id='cuerpo')
-            if cuerpo is not None:
-                parrafos = cuerpo.find_all('p')
-                texto = ""
-                for p in parrafos:
-                    texto = texto + p.getText()
+            parrafos = self.HtmlParseado.find_all("p", {"class": "com-paragraph"})
+            texto = ""
+            for p in parrafos:
+                texto = texto + p.getText()
         except Exception as ex:
             print("ERROR" + str(ex))
             print(texto)

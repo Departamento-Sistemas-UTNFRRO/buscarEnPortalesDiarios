@@ -1,10 +1,10 @@
 {
   "FileStorageConfig": [
     {
-      "base_path": "/home/pepe/git/buscarTitulosFacebook/data",
+      "base_path": "data",
       "input_filename": "post_input.csv",
       "input_init" : 0,
-      "input_end" : 2,
+      "input_end" : 20,
       "output_filename": "post_output"
     }
   ]
